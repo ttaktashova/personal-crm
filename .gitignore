@@ -1,0 +1,17 @@
+# Secrets
+.env
+.env*.local
+
+# Dependencies and builds
+node_modules/
+.next/
+out/
+build/
+
+# Misc
+.DS_Store
+*.pem
+*.tsbuildinfo
+next-env.d.ts
+npm-debug.log*
+.pnpm-debug.log*
