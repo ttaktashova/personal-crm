@@ -1,0 +1,14 @@
+# Secrets never go into the image
+.env
+.env.*
+
+# Rebuilt inside the image
+node_modules
+.next
+
+# Not needed to build the app
+.git
+.github
+.claude
+deploy
+specs
