@@ -21,7 +21,7 @@ export async function generateMetadata({
 
 export default function ContactPage({ params }: PageProps<"/contacts/[id]">) {
   return (
-    <main className="mx-auto w-full max-w-2xl px-4 pb-16">
+    <main className="mx-auto w-full max-w-3xl px-4 pb-16">
       <div className="pt-6 sm:pt-10">
         <BackLink />
       </div>
@@ -47,13 +47,17 @@ async function ContactCard({
 
   return (
     <>
-      <header className="mt-4 mb-8 flex items-center gap-4">
-        <ContactAvatar name={contact.name} className="size-14 text-lg" />
+      <header className="mt-4 mb-6 flex items-center gap-4">
+        <ContactAvatar
+          name={contact.name}
+          tone="accent"
+          className="size-14 text-lg"
+        />
         <div className="min-w-0">
-          <h1 className="text-2xl font-semibold tracking-tight break-words">
+          <h1 className="font-display text-2xl leading-tight break-words sm:text-3xl">
             {contact.name}
           </h1>
-          <p className="text-sm text-muted-foreground">
+          <p className="mt-1 text-sm text-muted-foreground">
             Добавлен {formatDate(contact.createdAt)}
             {wasEdited && <> · изменён {formatDateTime(contact.updatedAt)}</>}
           </p>
@@ -80,18 +84,18 @@ async function ContactCard({
 function ContactCardSkeleton() {
   return (
     <div aria-busy aria-label="Загружаем карточку">
-      <div className="mt-4 mb-8 flex items-center gap-4">
+      <div className="mt-4 mb-6 flex items-center gap-4">
         <Skeleton className="size-14 rounded-full" />
         <div className="flex flex-col gap-2">
-          <Skeleton className="h-7 w-56" />
+          <Skeleton className="h-8 w-56" />
           <Skeleton className="h-4 w-40" />
         </div>
       </div>
-      <div className="flex flex-col gap-5">
-        <Skeleton className="h-16 w-full" />
-        <Skeleton className="h-16 w-full" />
-        <Skeleton className="h-16 w-full" />
-        <Skeleton className="h-48 w-full" />
+      <div className="flex flex-col gap-5 rounded-card border bg-card p-5 sm:p-7">
+        <Skeleton className="h-18 w-full rounded-xl" />
+        <Skeleton className="h-18 w-full rounded-xl" />
+        <Skeleton className="h-18 w-full rounded-xl" />
+        <Skeleton className="h-56 w-full rounded-xl" />
       </div>
     </div>
   );

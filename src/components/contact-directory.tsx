@@ -1,6 +1,6 @@
 "use client";
 
-import { SearchIcon, XIcon } from "lucide-react";
+import { ChevronRightIcon, SearchIcon, XIcon } from "lucide-react";
 import Link from "next/link";
 import {
   useDeferredValue,
@@ -10,6 +10,7 @@ import {
   useState,
 } from "react";
 
+import { CatConfused } from "@/components/cat-confused";
 import { ContactAvatar } from "@/components/contact-avatar";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -107,8 +108,8 @@ export function ContactDirectory({
 
   if (contacts.length === 0) {
     return (
-      <div className="rounded-2xl border border-dashed px-6 py-16 text-center">
-        <p className="font-medium">Здесь пока никого нет</p>
+      <div className="rounded-card border bg-card px-6 py-16 text-center">
+        <p className="font-display text-xl">Здесь пока никого нет</p>
         <p className="mt-1 text-sm text-muted-foreground">
           Нажмите «Добавить контакт», чтобы записать первого человека.
         </p>
@@ -120,7 +121,7 @@ export function ContactDirectory({
     <div>
       <div className="sticky top-0 z-10 -mx-4 bg-background/90 px-4 pt-2 pb-3 backdrop-blur">
         <form role="search" onSubmit={(event) => event.preventDefault()}>
-          <InputGroup className="h-10 bg-background">
+          <InputGroup className="h-11 bg-card">
             <InputGroupAddon>
               <SearchIcon />
             </InputGroupAddon>
@@ -161,23 +162,24 @@ export function ContactDirectory({
       </div>
 
       {visibleContacts.length === 0 ? (
-        <div className="px-3 py-16 text-center">
-          <p className="font-medium">Никого не нашли</p>
+        <div className="flex flex-col items-center px-3 py-12 text-center">
+          <CatConfused />
+          <p className="mt-4 font-display text-xl">Никого не нашли</p>
           <p className="mt-1 text-sm text-muted-foreground">
             По запросу «{deferredQuery.trim()}» контактов нет. Проверьте имя
             или добавьте нового человека.
           </p>
         </div>
       ) : (
-        <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-5">
           {groups.map((group, index) => (
             <section key={`${group.letter}-${index}`}>
               {group.letter && (
-                <h2 className="px-3 pb-1 text-xs font-semibold text-muted-foreground">
+                <h2 className="px-1 pb-2 font-display text-lg leading-none text-primary">
                   {group.letter}
                 </h2>
               )}
-              <ul>
+              <ul className="divide-y overflow-hidden rounded-card border bg-card">
                 {group.contacts.map((contact) => (
                   <ContactRow
                     key={contact.id}
@@ -206,16 +208,21 @@ function ContactRow({
       <Link
         href={`/contacts/${contact.id}`}
         className={cn(
-          "flex items-center gap-3 rounded-xl px-3 py-2.5 outline-none transition-colors hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50",
-          isNew && "bg-amber-50 ring-1 ring-amber-200 hover:bg-amber-100",
+          "flex items-center gap-3 px-4 py-3 outline-none transition-colors hover:bg-muted focus-visible:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:ring-inset",
+          isNew && "bg-muted",
         )}
       >
-        <ContactAvatar name={contact.name} />
+        <ContactAvatar name={contact.name} tone={isNew ? "accent" : "default"} />
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
-            <span className="truncate font-medium">{contact.name}</span>
+            <span className="truncate font-semibold">{contact.name}</span>
             {isNew && (
-              <Badge className="bg-amber-200 text-amber-900">Новый</Badge>
+              <Badge
+                variant="outline"
+                className="border-primary bg-transparent text-primary"
+              >
+                Новый
+              </Badge>
             )}
           </div>
           {contact.howWeMet && (
@@ -230,6 +237,10 @@ function ContactRow({
             <p className="max-w-60 truncate">{contact.email}</p>
           )}
         </div>
+        <ChevronRightIcon
+          aria-hidden
+          className="size-4 shrink-0 text-muted-foreground"
+        />
       </Link>
     </li>
   );

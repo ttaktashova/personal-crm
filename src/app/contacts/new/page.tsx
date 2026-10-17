@@ -9,11 +9,11 @@ export const metadata: Metadata = {
 
 export default function NewContactPage() {
   return (
-    <main className="mx-auto w-full max-w-2xl px-4 pb-16">
+    <main className="mx-auto w-full max-w-3xl px-4 pb-16">
       <div className="pt-6 sm:pt-10">
         <BackLink />
       </div>
-      <h1 className="mt-4 mb-8 text-2xl font-semibold tracking-tight">
+      <h1 className="mt-4 mb-6 font-display text-3xl sm:text-4xl">
         Новый контакт
       </h1>
       <ContactForm mode="create" />

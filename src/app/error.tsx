@@ -17,7 +17,7 @@ export default function ErrorPage({
 
   return (
     <main className="mx-auto w-full max-w-2xl px-4 py-16 text-center">
-      <h1 className="text-2xl font-semibold tracking-tight">
+      <h1 className="font-display text-3xl">
         Не получилось загрузить данные
       </h1>
       <p className="mt-2 text-muted-foreground">
@@ -27,7 +27,7 @@ export default function ErrorPage({
         </code>{" "}
         и попробуйте ещё раз.
       </p>
-      <Button size="lg" className="mt-6 px-4" onClick={() => retry()}>
+      <Button size="lg" className="mt-6" onClick={() => retry()}>
         Попробовать ещё раз
       </Button>
     </main>

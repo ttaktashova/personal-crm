@@ -133,7 +133,7 @@ export function ContactForm(props: ContactFormProps) {
       }}
       noValidate
     >
-      <FieldGroup>
+      <FieldGroup className="rounded-card border bg-card p-5 sm:p-7">
         <Field data-invalid={!!errors.name}>
           <FieldLabel htmlFor="name">Имя</FieldLabel>
           <Input
@@ -146,7 +146,7 @@ export function ContactForm(props: ContactFormProps) {
             aria-invalid={!!errors.name}
             aria-required
             onChange={() => clearError("name")}
-            className="h-10"
+            className="h-11"
           />
           <FieldError>{errors.name}</FieldError>
         </Field>
@@ -161,7 +161,7 @@ export function ContactForm(props: ContactFormProps) {
             autoComplete="off"
             aria-invalid={!!errors.howWeMet}
             onChange={() => clearError("howWeMet")}
-            className="h-10"
+            className="h-11"
           />
           <FieldError>{errors.howWeMet}</FieldError>
         </Field>
@@ -179,7 +179,7 @@ export function ContactForm(props: ContactFormProps) {
               autoComplete="off"
               aria-invalid={!!errors.phone}
               onChange={() => clearError("phone")}
-              className="h-10"
+              className="h-11"
             />
             <FieldError>{errors.phone}</FieldError>
           </Field>
@@ -196,7 +196,7 @@ export function ContactForm(props: ContactFormProps) {
               autoComplete="off"
               aria-invalid={!!errors.email}
               onChange={() => clearError("email")}
-              className="h-10"
+              className="h-11"
             />
             <FieldError>{errors.email}</FieldError>
           </Field>
@@ -218,7 +218,7 @@ export function ContactForm(props: ContactFormProps) {
       </FieldGroup>
 
       <div className="mt-6 flex flex-wrap items-center gap-3">
-        <Button type="submit" size="lg" disabled={isPending} className="px-4">
+        <Button type="submit" variant="cta" size="lg" disabled={isPending}>
           {isPending && <Loader2Icon className="animate-spin" data-icon="inline-start" />}
           {props.mode === "create" ? "Добавить контакт" : "Сохранить"}
         </Button>
