@@ -4,7 +4,7 @@ import { BackLink } from "@/components/back-link";
 import { ContactForm } from "@/components/contact-form";
 
 export const metadata: Metadata = {
-  title: "Новый контакт",
+  title: "Новый чертила",
 };
 
 export default function NewContactPage() {
@@ -14,7 +14,7 @@ export default function NewContactPage() {
         <BackLink />
       </div>
       <h1 className="mt-4 mb-6 font-display text-3xl sm:text-4xl">
-        Новый контакт
+        Новый чертила
       </h1>
       <ContactForm mode="create" />
     </main>

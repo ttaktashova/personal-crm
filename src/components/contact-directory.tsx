@@ -111,7 +111,7 @@ export function ContactDirectory({
       <div className="rounded-card border bg-card px-6 py-16 text-center">
         <p className="font-display text-xl">Здесь пока никого нет</p>
         <p className="mt-1 text-sm text-muted-foreground">
-          Нажмите «Добавить контакт», чтобы записать первого человека.
+          Нажмите «Добавить черта», чтобы записать первого человека.
         </p>
       </div>
     );
