@@ -8,7 +8,7 @@ export function BackLink() {
       className="inline-flex items-center gap-1.5 rounded-md text-sm text-muted-foreground transition-colors outline-none hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50"
     >
       <ArrowLeftIcon className="size-4" />
-      Все контакты
+      Весь список
     </Link>
   );
 }

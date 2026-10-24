@@ -221,7 +221,7 @@ export function ContactForm(props: ContactFormProps) {
       <div className="mt-6 flex flex-wrap items-center gap-3">
         <Button type="submit" variant="cta" size="lg" disabled={isPending}>
           {isPending && <Loader2Icon className="animate-spin" data-icon="inline-start" />}
-          {props.mode === "create" ? "Добавить контакт" : "Сохранить"}
+          {props.mode === "create" ? "Добавить черта" : "Сохранить"}
         </Button>
         {props.mode === "create" ? (
           <Link href="/" className={buttonVariants({ variant: "ghost", size: "lg" })}>

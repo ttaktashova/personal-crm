@@ -2,7 +2,7 @@ import Link from "next/link";
 
 import { Logo } from "@/components/logo";
 
-// Same header as on the landing: logo, product name and the "личная CRM" pill.
+// Logo, product name and the "личный блокнотик" pill; the landing keeps its own copy.
 export function SiteHeader() {
   return (
     <header className="border-b border-line">
@@ -17,7 +17,7 @@ export function SiteHeader() {
           </span>
         </Link>
         <span className="ml-auto rounded-full border border-border-strong px-3 py-1.5 text-xs font-medium whitespace-nowrap text-muted-foreground sm:ml-4 sm:text-caption">
-          личная CRM
+          личный блокнотик
         </span>
       </div>
     </header>

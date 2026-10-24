@@ -22,7 +22,7 @@ export const metadata: Metadata = {
     default: "Черный список",
     template: "%s · Черный список",
   },
-  description: "Контакты людей, которых я знаю лично",
+  description: "Черный список: личная CRM для мести",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
