@@ -7,6 +7,7 @@ import { useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 
 import { createContact, updateContact } from "@/app/contacts/actions";
+import { DeleteContactButton } from "@/components/delete-contact-button";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Field, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
@@ -227,12 +228,18 @@ export function ContactForm(props: ContactFormProps) {
             Отмена
           </Link>
         ) : (
-          isDirty &&
-          !isPending && (
-            <span className="text-sm text-muted-foreground">
-              Есть несохранённые изменения
-            </span>
-          )
+          <>
+            {isDirty && !isPending && (
+              <span className="text-sm text-muted-foreground">
+                Есть несохранённые изменения
+              </span>
+            )}
+            <DeleteContactButton
+              contactId={props.contactId}
+              name={props.initialValues.name}
+              className="ml-auto"
+            />
+          </>
         )}
       </div>
     </form>
