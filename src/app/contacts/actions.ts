@@ -60,3 +60,26 @@ export async function updateContact(
   revalidatePath(`/contacts/${contactId}`);
   return { status: "saved", id: updated.id };
 }
+
+export type DeleteContactResult = { status: "deleted" } | { status: "not-found" };
+
+export async function deleteContact(id: unknown): Promise<DeleteContactResult> {
+  const contactId = parseContactId(id);
+  if (contactId === null) {
+    return { status: "not-found" };
+  }
+
+  const [deleted] = await db
+    .delete(contacts)
+    .where(eq(contacts.id, contactId))
+    .returning({ id: contacts.id });
+
+  if (!deleted) {
+    return { status: "not-found" };
+  }
+
+  // Only the list: revalidating the open card would re-render it as "not found"
+  // before the client navigates away.
+  revalidatePath("/");
+  return { status: "deleted" };
+}

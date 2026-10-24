@@ -97,7 +97,7 @@ ssh crm 'bash /opt/personal-crm/deploy/deploy.sh "$(cat /opt/personal-crm/previo
 
 ## Как устроено
 
-- `src/app` — страницы: список контактов (`page.tsx`), новый контакт (`contacts/new`), карточка (`contacts/[id]`), сохранение данных (`contacts/actions.ts`)
+- `src/app` — страницы: список контактов (`page.tsx`), новый контакт (`contacts/new`), карточка (`contacts/[id]`), сохранение и удаление данных (`contacts/actions.ts`)
 - `src/components` — части интерфейса: список с поиском, форма контакта
 - `src/db` — схема таблицы и подключение к базе
 - `src/lib` — запросы к базе, проверка полей формы, форматирование
