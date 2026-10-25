@@ -1,6 +1,12 @@
 // Deterministic generator of realistic test contacts (Russian names and texts).
 
-import type { NewContact } from "../src/db/schema";
+import type { NewContact, NewInteraction } from "../src/db/schema";
+
+// A contact with its revenge history: one record per dated note, as the notes migration would copy.
+export type SeedContact = {
+  contact: NewContact;
+  interactions: Pick<NewInteraction, "occurredOn" | "summary">[];
+};
 
 type Gender = "m" | "f";
 type Random = () => number;
@@ -313,6 +319,11 @@ function formatNoteDate(date: Date): string {
   return `${day}.${month}.${date.getUTCFullYear()}`;
 }
 
+// "YYYY-MM-DD" for a date column.
+function formatIsoDate(date: Date): string {
+  return date.toISOString().slice(0, 10);
+}
+
 // Working hours, so timestamps look like real edits.
 function randomTimeOfDay(random: Random, dayStart: number): Date {
   return new Date(dayStart + randomInt(random, 6 * 60, 18 * 60) * 60 * 1000);
@@ -328,10 +339,10 @@ function pickCategory(random: Random): Category {
   return CATEGORIES[CATEGORIES.length - 1];
 }
 
-export function generateContacts(count: number, seed = 20261009): NewContact[] {
+export function generateContacts(count: number, seed = 20261009): SeedContact[] {
   const random = createRandom(seed);
   const usedNames = new Set<string>();
-  const result: NewContact[] = [];
+  const result: SeedContact[] = [];
 
   while (result.length < count) {
     const gender: Gender = chance(random, 0.5) ? "m" : "f";
@@ -368,11 +379,12 @@ export function generateContacts(count: number, seed = 20261009): NewContact[] {
       return createdDay + Math.floor((random() * span) / DAY_MS) * DAY_MS;
     }).sort((a, b) => a - b);
 
-    const notes = noteDays
-      .map(
-        (day) =>
-          `${formatNoteDate(new Date(day))} — ${gendered(pick(random, NOTE_TEMPLATES)(random), gender)}`,
-      )
+    const datedNotes = noteDays.map((day) => ({
+      date: new Date(day),
+      text: gendered(pick(random, NOTE_TEMPLATES)(random), gender),
+    }));
+    const notes = datedNotes
+      .map(({ date, text }) => `${formatNoteDate(date)} — ${text}`)
       .join("\n\n");
 
     const lastNoteDay = noteDays.at(-1);
@@ -382,13 +394,19 @@ export function generateContacts(count: number, seed = 20261009): NewContact[] {
         : createdAt;
 
     result.push({
-      name,
-      howWeMet,
-      phone: chance(random, 0.9) ? makePhone(random) : "",
-      email: chance(random, 0.72) ? makeEmail(random, firstName, surname, workDomain) : "",
-      notes,
-      createdAt,
-      updatedAt,
+      contact: {
+        name,
+        howWeMet,
+        phone: chance(random, 0.9) ? makePhone(random) : "",
+        email: chance(random, 0.72) ? makeEmail(random, firstName, surname, workDomain) : "",
+        notes,
+        createdAt,
+        updatedAt,
+      },
+      interactions: datedNotes.map(({ date, text }) => ({
+        occurredOn: formatIsoDate(date),
+        summary: text,
+      })),
     });
   }
 

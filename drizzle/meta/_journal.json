@@ -8,6 +8,20 @@
       "when": 1791558352861,
       "tag": "0000_create_contacts",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1792916789658,
+      "tag": "0001_create_interactions",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1792916880314,
+      "tag": "0002_copy_interactions_from_notes",
+      "breakpoints": true
     }
   ]
 }
