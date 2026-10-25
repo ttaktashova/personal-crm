@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Карточка контакта — просмотр</title>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&amp;family=Golos+Text:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0;background:#17110f}
+a{color:#ff4a2e}a:hover{color:#ff6a50}
+</style>
+</helmet>
+<div style="min-height: 100vh; position: relative; background: #17110f; color: #e6ddd1; font-family: 'Golos Text', system-ui, sans-serif; font-size: 16px; line-height: 1.5">
+  <header style="border-bottom: 1px solid #2a211d">
+    <div style="max-width: 768px; margin: 0 auto; height: 80px; padding: 0 16px; display: flex; align-items: center; gap: 16px">
+      <a href="Main.dc.html" style="display: flex; align-items: center; gap: 12px; text-decoration: none">
+        <svg width="36" height="36" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="9" fill="#ff4a2e"></rect><path d="M8 25 L8 9 L12.5 13 L19.5 13 L24 9 L24 25 Z" fill="#17110f" stroke="#17110f" stroke-width="2.5" stroke-linejoin="round"></path><circle cx="13" cy="19" r="1.6" fill="#ff4a2e"></circle><circle cx="19" cy="19" r="1.6" fill="#ff4a2e"></circle></svg>
+        <span style="font-family: 'Dela Gothic One', sans-serif; font-size: 18px; color: #f6eee3; white-space: nowrap">черный список</span>
+      </a>
+      <span style="border: 1px solid #4a3f39; border-radius: 999px; padding: 6px 12px; font-size: 13px; font-weight: 500; color: #b5aa9d; white-space: nowrap">личный блокнотик</span>
+    </div>
+  </header>
+
+  <main style="max-width: 768px; margin: 0 auto; padding: 40px 16px 64px">
+    <a href="Main.dc.html" style="display: inline-flex; align-items: center; gap: 6px; font-size: 14px; color: #b5aa9d; text-decoration: none">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 19-7-7 7-7"></path><path d="M19 12H5"></path></svg>
+      Весь список
+    </a>
+
+    <div style="display: flex; align-items: center; gap: 16px; margin: 16px 0 24px">
+      <span aria-hidden="true" style="display: flex; align-items: center; justify-content: center; width: 56px; height: 56px; flex: none; border-radius: 50%; background: #ff4a2e; color: #17110f; font-family: 'Dela Gothic One', sans-serif; font-size: 18px">АС</span>
+      <div style="min-width: 0">
+        <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px">
+          <h1 style="margin: 0; font-family: 'Dela Gothic One', sans-serif; font-weight: 400; font-size: 30px; line-height: 1.15; color: #f6eee3">Анна Смирнова</h1>
+          <div style="display: flex; gap: 6px">
+            <a href="Edit.dc.html" aria-label="Редактировать" title="Редактировать" style="display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; border-radius: 10px; border: 1px solid #4a3f39; color: #f6eee3">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"></path><path d="m15 5 4 4"></path></svg>
+            </a>
+            <button type="button" aria-label="Удалить" title="Удалить" style="display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; border-radius: 10px; border: 0; background: rgba(255, 74, 46, 0.14); color: #ff4a2e; cursor: pointer">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 11v6"></path><path d="M14 11v6"></path><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"></path><path d="M3 6h18"></path><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+            </button>
+          </div>
+        </div>
+        <p style="margin: 6px 0 0; font-size: 15px; color: #e6ddd1">мстили 1 сентября 2026</p>
+        <p style="margin: 2px 0 0; font-size: 14px; color: #b5aa9d">Добавлен 12 марта 2025 · изменён 20 октября 2026</p>
+      </div>
+    </div>
+
+    <dl style="margin: 0; padding: 4px 28px; background: #221a17; border: 1px solid #3d322c; border-radius: 20px; font-size: 15px">
+      <div style="display: grid; grid-template-columns: 200px minmax(0, 1fr); gap: 16px; padding: 16px 0; border-bottom: 1px solid #3d322c">
+        <dt style="color: #b5aa9d">Откуда знакомы</dt>
+        <dd style="margin: 0; color: #f6eee3">Работали вместе в «Ромашке»</dd>
+      </div>
+      <div style="display: grid; grid-template-columns: 200px minmax(0, 1fr); gap: 16px; padding: 16px 0; border-bottom: 1px solid #3d322c">
+        <dt style="color: #b5aa9d">Телефон</dt>
+        <dd style="margin: 0; color: #f6eee3">+7 900 123-45-67</dd>
+      </div>
+      <div style="display: grid; grid-template-columns: 200px minmax(0, 1fr); gap: 16px; padding: 16px 0; border-bottom: 1px solid #3d322c">
+        <dt style="color: #b5aa9d">Почта</dt>
+        <dd style="margin: 0; color: #b5aa9d; font-style: italic">не указано</dd>
+      </div>
+      <div style="display: grid; grid-template-columns: 200px minmax(0, 1fr); gap: 16px; padding: 16px 0; border-bottom: 1px solid #3d322c">
+        <dt style="color: #b5aa9d">Как часто припоминать</dt>
+        <dd style="margin: 0; color: #f6eee3">Раз в месяц</dd>
+      </div>
+      <div style="display: grid; grid-template-columns: 200px minmax(0, 1fr); gap: 16px; padding: 16px 0; border-bottom: 1px solid #3d322c">
+        <dt style="color: #b5aa9d">Последняя месть</dt>
+        <dd style="margin: 0; display: flex; flex-direction: column; gap: 12px">
+          <span style="color: #f6eee3"><span style="font-weight: 600; font-variant-numeric: tabular-nums">01.09.2026</span> Пили кофе, договорились обсудить договор в мессенджере</span>
+          <span style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px">
+            <a href="History.dc.html" style="color: #ff4a2e; text-decoration: underline; text-underline-offset: 3px">Вся история</a>
+            <a href="Record.dc.html" style="display: inline-flex; align-items: center; height: 36px; padding: 0 14px; border-radius: 10px; border: 1px solid #4a3f39; color: #f6eee3; font-family: 'Dela Gothic One', sans-serif; font-size: 13px; text-decoration: none">Отомстил</a>
+          </span>
+        </dd>
+      </div>
+      <div style="display: grid; grid-template-columns: 200px minmax(0, 1fr); gap: 16px; padding: 16px 0">
+        <dt style="color: #b5aa9d">Заметки</dt>
+        <dd style="margin: 0; color: #f6eee3; white-space: pre-line">День рождения 12 мая. Любит джаз.
+
+08.10.2025 — Встретились на кофе. Сейчас ищет работу в продукте.</dd>
+      </div>
+    </dl>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1100}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

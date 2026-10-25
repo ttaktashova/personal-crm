@@ -1,14 +1,11 @@
 "use client";
 
 import { Loader2Icon } from "lucide-react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useRef, useState, useTransition } from "react";
+import { useRef, useState, type TransitionStartFunction } from "react";
 import { toast } from "sonner";
 
 import { createContact, updateContact } from "@/app/contacts/actions";
-import { DeleteContactButton } from "@/components/delete-contact-button";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { Field, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -39,16 +36,22 @@ function readForm(form: HTMLFormElement): ContactInput {
   };
 }
 
-type ContactFormProps =
+export type ContactFormTarget =
   | { mode: "create" }
   | { mode: "edit"; contactId: number; initialValues: ContactInput };
 
+type ContactFormProps = ContactFormTarget & {
+  // The dialog around the form owns the transition, so it can stay open while saving.
+  isPending: boolean;
+  startTransition: TransitionStartFunction;
+  onSaved: (id: number) => void;
+  onCancel: () => void;
+};
+
 export function ContactForm(props: ContactFormProps) {
-  const router = useRouter();
+  const { isPending, startTransition } = props;
   const formRef = useRef<HTMLFormElement>(null);
   const [errors, setErrors] = useState<ContactFieldErrors>({});
-  const [isDirty, setIsDirty] = useState(false);
-  const [isPending, startTransition] = useTransition();
 
   const initialValues = props.mode === "edit" ? props.initialValues : EMPTY_CONTACT;
 
@@ -95,15 +98,12 @@ export function ContactForm(props: ContactFormProps) {
         }
 
         setErrors({});
-        setIsDirty(false);
-
-        if (props.mode === "create") {
-          form.reset();
-          toast.success(`Контакт «${check.data.name}» добавлен`);
-          router.push(`/?added=${result.id}`);
-        } else {
-          toast.success("Изменения сохранены");
-        }
+        toast.success(
+          props.mode === "create"
+            ? `Контакт «${check.data.name}» добавлен`
+            : "Изменения сохранены",
+        );
+        props.onSaved(result.id);
       } catch {
         toast.error("Не удалось сохранить. Проверьте, что приложение запущено, и попробуйте ещё раз.");
       }
@@ -124,7 +124,6 @@ export function ContactForm(props: ContactFormProps) {
     <form
       ref={formRef}
       onSubmit={handleSubmit}
-      onChange={() => setIsDirty(true)}
       onKeyDown={(event) => {
         // Ctrl+Enter (Cmd+Enter on Mac) saves from any field, including notes.
         if (event.key === "Enter" && (event.ctrlKey || event.metaKey)) {
@@ -134,7 +133,7 @@ export function ContactForm(props: ContactFormProps) {
       }}
       noValidate
     >
-      <FieldGroup className="rounded-card border bg-card p-5 sm:p-7">
+      <FieldGroup className="gap-4">
         <Field data-invalid={!!errors.name}>
           <FieldLabel htmlFor="name">Имя</FieldLabel>
           <Input
@@ -143,7 +142,6 @@ export function ContactForm(props: ContactFormProps) {
             defaultValue={initialValues.name}
             placeholder="Например: Анна Смирнова"
             autoComplete="off"
-            autoFocus={props.mode === "create"}
             aria-invalid={!!errors.name}
             aria-required
             onChange={() => clearError("name")}
@@ -167,7 +165,7 @@ export function ContactForm(props: ContactFormProps) {
           <FieldError>{errors.howWeMet}</FieldError>
         </Field>
 
-        <div className="grid gap-5 sm:grid-cols-2">
+        <div className="grid gap-4 sm:grid-cols-2">
           <Field data-invalid={!!errors.phone}>
             <FieldLabel htmlFor="phone">Телефон</FieldLabel>
             <Input
@@ -209,38 +207,35 @@ export function ContactForm(props: ContactFormProps) {
             id="notes"
             name="notes"
             defaultValue={initialValues.notes}
-            placeholder="О чём говорили, о чём договорились"
+            placeholder="Что натворил, что обещал, что припомнить"
             aria-invalid={!!errors.notes}
             onChange={() => clearError("notes")}
-            className="min-h-48 leading-relaxed"
+            className="min-h-36 leading-relaxed"
           />
           <FieldError>{errors.notes}</FieldError>
         </Field>
       </FieldGroup>
 
-      <div className="mt-6 flex flex-wrap items-center gap-3">
-        <Button type="submit" variant="cta" size="lg" disabled={isPending}>
+      <div className="mt-6 flex items-center gap-3">
+        <Button
+          type="submit"
+          variant="cta"
+          size="lg"
+          disabled={isPending}
+          className="flex-1 sm:flex-none"
+        >
           {isPending && <Loader2Icon className="animate-spin" data-icon="inline-start" />}
           {props.mode === "create" ? "Добавить черта" : "Сохранить"}
         </Button>
-        {props.mode === "create" ? (
-          <Link href="/" className={buttonVariants({ variant: "ghost", size: "lg" })}>
-            Отмена
-          </Link>
-        ) : (
-          <>
-            {isDirty && !isPending && (
-              <span className="text-sm text-muted-foreground">
-                Есть несохранённые изменения
-              </span>
-            )}
-            <DeleteContactButton
-              contactId={props.contactId}
-              name={props.initialValues.name}
-              className="ml-auto"
-            />
-          </>
-        )}
+        <Button
+          type="button"
+          variant="ghost"
+          size="lg"
+          disabled={isPending}
+          onClick={props.onCancel}
+        >
+          Отмена
+        </Button>
       </div>
     </form>
   );
