@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Окно редактирования контакта</title>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&amp;family=Golos+Text:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0;background:#17110f}
+a{color:#ff4a2e}a:hover{color:#ff6a50}
+input::placeholder,textarea::placeholder{color:#b5aa9d}
+</style>
+</helmet>
+<div style="min-height: 100vh; position: relative; background: #17110f; color: #e6ddd1; font-family: 'Golos Text', system-ui, sans-serif; font-size: 16px; line-height: 1.5">
+  <div aria-hidden="true">
+    <header style="border-bottom: 1px solid #2a211d">
+      <div style="max-width: 768px; margin: 0 auto; height: 80px; padding: 0 16px; display: flex; align-items: center; gap: 12px">
+        <svg width="36" height="36" viewBox="0 0 32 32"><rect width="32" height="32" rx="9" fill="#ff4a2e"></rect><path d="M8 25 L8 9 L12.5 13 L19.5 13 L24 9 L24 25 Z" fill="#17110f" stroke="#17110f" stroke-width="2.5" stroke-linejoin="round"></path><circle cx="13" cy="19" r="1.6" fill="#ff4a2e"></circle><circle cx="19" cy="19" r="1.6" fill="#ff4a2e"></circle></svg>
+        <span style="font-family: 'Dela Gothic One', sans-serif; font-size: 18px; color: #f6eee3">черный список</span>
+      </div>
+    </header>
+    <div style="max-width: 768px; margin: 0 auto; padding: 40px 16px">
+      <div style="display: flex; align-items: center; gap: 16px; margin: 36px 0 24px">
+        <span style="width: 56px; height: 56px; border-radius: 50%; background: #ff4a2e"></span>
+        <div>
+          <div style="font-family: 'Dela Gothic One', sans-serif; font-size: 30px; color: #f6eee3">Анна Смирнова</div>
+          <div style="font-size: 15px">мстили 1 сентября 2026</div>
+        </div>
+      </div>
+      <div style="height: 520px; background: #221a17; border: 1px solid #3d322c; border-radius: 20px"></div>
+    </div>
+  </div>
+
+  <div style="position: absolute; inset: 0; display: flex; justify-content: center; align-items: flex-start; padding: 64px 16px; background: rgba(10, 7, 6, 0.72)">
+    <section role="dialog" aria-modal="true" aria-labelledby="edit-title" style="width: 100%; max-width: 540px; box-sizing: border-box; padding: 24px; background: #2e2522; border: 1px solid #4a3f39; border-radius: 20px; box-shadow: 0 24px 60px -20px rgba(0, 0, 0, 0.7)">
+      <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 8px">
+        <h2 id="edit-title" style="margin: 0; font-family: 'Dela Gothic One', sans-serif; font-weight: 400; font-size: 20px; line-height: 1.2; color: #f6eee3">Редактировать контакт</h2>
+        <a href="Card.dc.html" aria-label="Закрыть" style="display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; border-radius: 10px; color: #b5aa9d">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg>
+        </a>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 16px">
+        <div>
+          <label for="e-name" style="display: block; margin-bottom: 6px; font-size: 14px; font-weight: 500; color: #f6eee3">Имя</label>
+          <input id="e-name" value="Анна Смирнова" style="width: 100%; box-sizing: border-box; height: 44px; padding: 0 12px; background: transparent; border: 1px solid #4a3f39; border-radius: 12px; color: #f6eee3; font: inherit; font-size: 15px">
+        </div>
+        <div>
+          <label for="e-met" style="display: block; margin-bottom: 6px; font-size: 14px; font-weight: 500; color: #f6eee3">Откуда знакомы</label>
+          <input id="e-met" value="Работали вместе в «Ромашке»" style="width: 100%; box-sizing: border-box; height: 44px; padding: 0 12px; background: transparent; border: 1px solid #4a3f39; border-radius: 12px; color: #f6eee3; font: inherit; font-size: 15px">
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px">
+          <div>
+            <label for="e-phone" style="display: block; margin-bottom: 6px; font-size: 14px; font-weight: 500; color: #f6eee3">Телефон</label>
+            <input id="e-phone" type="tel" value="+7 900 123-45-67" style="width: 100%; box-sizing: border-box; height: 44px; padding: 0 12px; background: transparent; border: 1px solid #4a3f39; border-radius: 12px; color: #f6eee3; font: inherit; font-size: 15px">
+          </div>
+          <div>
+            <label for="e-email" style="display: block; margin-bottom: 6px; font-size: 14px; font-weight: 500; color: #f6eee3">Почта</label>
+            <input id="e-email" type="email" placeholder="name@example.com" style="width: 100%; box-sizing: border-box; height: 44px; padding: 0 12px; background: transparent; border: 1px solid #4a3f39; border-radius: 12px; color: #f6eee3; font: inherit; font-size: 15px">
+          </div>
+        </div>
+        <div>
+          <label for="e-freq" style="display: block; margin-bottom: 6px; font-size: 14px; font-weight: 500; color: #f6eee3">Как часто припоминать</label>
+          <button id="e-freq" type="button" aria-haspopup="listbox" style="display: flex; align-items: center; justify-content: space-between; width: 100%; height: 44px; padding: 0 12px; background: transparent; border: 1px solid #4a3f39; border-radius: 12px; color: #f6eee3; font: inherit; font-size: 15px; text-align: left; cursor: pointer">
+            Раз в месяц
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#b5aa9d" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg>
+          </button>
+        </div>
+        <div>
+          <label for="e-notes" style="display: block; margin-bottom: 6px; font-size: 14px; font-weight: 500; color: #f6eee3">Заметки</label>
+          <textarea id="e-notes" rows="6" placeholder="Что натворил, что обещал, что припомнить" style="display: block; width: 100%; box-sizing: border-box; min-height: 140px; padding: 10px 12px; background: transparent; border: 1px solid #4a3f39; border-radius: 12px; color: #f6eee3; font: inherit; font-size: 15px; line-height: 1.6; resize: vertical">День рождения 12 мая. Любит джаз.
+
+08.10.2025 — Встретились на кофе. Сейчас ищет работу в продукте.</textarea>
+        </div>
+      </div>
+
+      <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 24px">
+        <a href="Card.dc.html" style="display: inline-flex; align-items: center; height: 44px; padding: 0 20px; border-radius: 12px; background: #ff4a2e; color: #17110f; box-shadow: 4px 4px 0 #f6eee3; font-family: 'Dela Gothic One', sans-serif; font-size: 14px; text-decoration: none">Сохранить</a>
+        <a href="Card.dc.html" style="display: inline-flex; align-items: center; height: 44px; padding: 0 16px; border-radius: 12px; color: #e6ddd1; font-family: 'Dela Gothic One', sans-serif; font-size: 14px; text-decoration: none">Отмена</a>
+      </div>
+    </section>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1100}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

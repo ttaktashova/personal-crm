@@ -18,6 +18,11 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 export function DeleteContactButton({
   contactId,
@@ -61,12 +66,26 @@ export function DeleteContactButton({
         if (!isPending) setOpen(nextOpen);
       }}
     >
-      <AlertDialogTrigger
-        render={<Button variant="destructive" size="lg" className={className} />}
-      >
-        <Trash2Icon data-icon="inline-start" />
-        Удалить
-      </AlertDialogTrigger>
+      {/* One button is both the tooltip trigger and the dialog trigger. */}
+      <Tooltip>
+        <TooltipTrigger
+          render={
+            <AlertDialogTrigger
+              render={
+                <Button
+                  variant="destructive"
+                  size="icon-lg"
+                  aria-label="Удалить"
+                  className={className}
+                />
+              }
+            />
+          }
+        >
+          <Trash2Icon className="size-4.5 sm:size-4" />
+        </TooltipTrigger>
+        <TooltipContent>Удалить</TooltipContent>
+      </Tooltip>
       {/* Focus starts on "Cancel", so a stray Enter deletes nothing. */}
       <AlertDialogContent initialFocus={cancelRef}>
         <AlertDialogHeader>

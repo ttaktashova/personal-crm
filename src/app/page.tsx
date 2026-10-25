@@ -1,10 +1,8 @@
-import { PlusIcon } from "lucide-react";
 import type { Metadata } from "next";
-import Link from "next/link";
 import { Suspense } from "react";
 
 import { ContactDirectory } from "@/components/contact-directory";
-import { buttonVariants } from "@/components/ui/button";
+import { NewContactDialog } from "@/components/new-contact-dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { listContacts, parseContactId } from "@/lib/contacts";
 
@@ -18,10 +16,7 @@ export default function ContactsPage({ searchParams }: PageProps<"/">) {
     <main className="mx-auto w-full max-w-3xl px-4 pb-16">
       <header className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3 pt-8 pb-3 sm:pt-12">
         <h1 className="font-display text-3xl sm:text-4xl">Косячники</h1>
-        <Link href="/contacts/new" className={buttonVariants({ size: "lg" })}>
-          <PlusIcon data-icon="inline-start" />
-          Добавить черта
-        </Link>
+        <NewContactDialog />
       </header>
 
       <Suspense fallback={<DirectorySkeleton />}>

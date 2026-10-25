@@ -1,0 +1,593 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Карточка и окна контакта — обзор фичи</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=Golos+Text:wght@400;500;600&display=swap">
+<style>
+/* Values copied from src/app/globals.css (the app has one dark theme) */
+:root {
+  color-scheme: dark;
+  --background: #17110f;
+  --foreground: #f6eee3;
+  --card: #221a17;
+  --card-foreground: #e6ddd1;
+  --popover: #2e2522;
+  --popover-foreground: #f6eee3;
+  --primary: #ff4a2e;
+  --primary-hover: #ff6a50;
+  --primary-foreground: #17110f;
+  --secondary: #2e2522;
+  --secondary-foreground: #f6eee3;
+  --muted: #2e2522;
+  --muted-foreground: #b5aa9d;
+  --destructive: #ff4a2e;
+  --border: #3d322c;
+  --border-strong: #4a3f39;
+  --line: #2a211d;
+  --input: #4a3f39;
+  --ring: #f6eee3;
+  --radius: 0.625rem;
+  --radius-xl: 0.75rem;
+  --radius-2xl: 1rem;
+  --radius-card: 1.25rem;
+  --text-caption: 0.8125rem;
+  --text-ui: 0.9375rem;
+  --shadow-cta: 4px 4px 0 var(--foreground);
+  --font-sans: "Golos Text", system-ui, sans-serif;
+  --font-display: "Dela Gothic One", "Golos Text", sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  /* Derived from the tokens above for highlights */
+  --primary-soft: color-mix(in oklch, var(--primary) 16%, var(--card));
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--background);
+  color: var(--card-foreground);
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+a { color: var(--primary); text-underline-offset: 3px; }
+a:hover { color: var(--primary-hover); }
+.page { max-width: 920px; margin: 0 auto; padding: 32px 16px 80px; }
+header.top { display: flex; align-items: center; gap: 10px; padding-bottom: 16px; border-bottom: 1px solid var(--line); }
+header.top .name { font-family: var(--font-display); color: var(--foreground); font-size: 17px; }
+.pill { margin-left: auto; border: 1px solid var(--border-strong); border-radius: 999px; padding: 4px 12px; font-size: var(--text-caption); color: var(--muted-foreground); white-space: nowrap; }
+.logo { width: 30px; height: 30px; flex: none; }
+/* Rules target the shared <symbol>, which lives outside .logo in the DOM */
+#logo .tile { fill: var(--primary); }
+#logo .cat { fill: var(--primary-foreground); stroke: var(--primary-foreground); }
+#logo .eye { fill: var(--primary); }
+h1 { font-family: var(--font-display); font-weight: 400; color: var(--foreground); font-size: 42px; line-height: 1.1; margin: 28px 0 14px; text-wrap: balance; }
+h2 { font-family: var(--font-display); font-weight: 400; color: var(--foreground); font-size: 28px; line-height: 1.15; margin: 64px 0 16px; display: flex; align-items: baseline; gap: 12px; }
+h2 .num { font-size: 18px; color: var(--primary); }
+h3 { font-weight: 600; color: var(--foreground); font-size: 18px; margin: 28px 0 10px; }
+p { margin: 8px 0; }
+b, strong { color: var(--foreground); font-weight: 600; }
+.lead { font-size: 18px; max-width: 700px; }
+.muted { color: var(--muted-foreground); }
+.small { font-size: 14px; }
+code { font-family: var(--font-mono); font-size: 0.86em; background: var(--secondary); color: var(--foreground); padding: 1px 6px; border-radius: 6px; overflow-wrap: anywhere; }
+ul.points { padding-left: 20px; margin: 8px 0; }
+ul.points li { margin: 5px 0; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px; }
+.chip { display: inline-flex; align-items: center; gap: 6px; padding: 5px 12px; border-radius: 999px; background: var(--card); border: 1px solid var(--border-strong); font-size: 14px; }
+.chip.accent { color: var(--primary); border-color: var(--primary); }
+.card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius-card); padding: 20px 24px; }
+
+/* Icons (lucide, same set as the app) */
+svg.i { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+
+/* Screen sketches */
+.legend-row { display: flex; flex-wrap: wrap; gap: 8px 20px; font-size: 14px; color: var(--muted-foreground); margin-bottom: 18px; }
+.legend-row span { display: inline-flex; align-items: center; gap: 8px; }
+.sw { display: inline-block; width: 22px; height: 14px; border-radius: 4px; }
+.sw.new { outline: 2px dashed var(--primary); outline-offset: -2px; }
+.sw.changed { outline: 2px dotted var(--muted-foreground); outline-offset: -2px; }
+.mock-links { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 22px; }
+.mock-links a { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; border: 1px solid var(--border-strong); border-radius: 999px; padding: 4px 12px; text-decoration: none; color: var(--foreground); }
+.mock-links a:hover { border-color: var(--primary); }
+.screens { display: grid; gap: 40px; }
+.screen-title { font-family: var(--font-display); color: var(--foreground); font-size: 18px; margin: 0 0 10px; }
+.device { background: var(--background); border: 1px solid var(--border); border-radius: var(--radius-card); padding: 18px 16px; }
+.device.phone { max-width: 360px; }
+.btn { display: inline-flex; align-items: center; gap: 6px; border-radius: var(--radius-xl); font-family: var(--font-display); font-size: 13px; padding: 8px 13px; white-space: nowrap; border: 1px solid transparent; color: var(--foreground); }
+.btn-cta { background: var(--primary); color: var(--primary-foreground); box-shadow: var(--shadow-cta); }
+.btn-outline { border-color: var(--border-strong); }
+.btn-ghost { color: var(--card-foreground); }
+.btn-danger { background: color-mix(in oklch, var(--destructive) 18%, transparent); color: var(--destructive); }
+.btn.focused { outline: 3px solid var(--ring); outline-offset: 3px; }
+.icon-btn { position: relative; display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 10px; border: 1px solid var(--border-strong); color: var(--foreground); flex: none; }
+.icon-btn.danger { color: var(--destructive); border-color: transparent; background: color-mix(in oklch, var(--destructive) 14%, transparent); }
+.icon-btn.lg { width: 44px; height: 44px; border-radius: 12px; }
+.tip { position: absolute; bottom: calc(100% + 8px); left: 50%; transform: translateX(-50%); background: var(--foreground); color: var(--background); font-size: 12px; font-weight: 500; padding: 3px 9px; border-radius: 6px; white-space: nowrap; z-index: 2; }
+.tip::after { content: ""; position: absolute; top: 100%; left: 50%; margin-left: -5px; border: 5px solid transparent; border-top-color: var(--foreground); }
+.avatar { display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; border-radius: 50%; background: var(--secondary); color: var(--secondary-foreground); font-family: var(--font-display); font-size: 12px; flex: none; }
+.avatar.accent { background: var(--primary); color: var(--primary-foreground); }
+.avatar.big { width: 52px; height: 52px; font-size: 16px; }
+.back { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; color: var(--muted-foreground); margin-bottom: 14px; }
+.is-new, .is-changed { position: relative; border-radius: 12px; }
+.is-new { outline: 2px dashed var(--primary); outline-offset: 5px; }
+.is-changed { outline: 2px dotted var(--muted-foreground); outline-offset: 5px; }
+.new-tag { position: absolute; top: -15px; right: 10px; background: var(--primary); color: var(--primary-foreground); font-size: 10.5px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; padding: 2px 8px; border-radius: 999px; z-index: 1; white-space: nowrap; }
+.new-tag.changed { background: var(--secondary); color: var(--foreground); border: 1px solid var(--border-strong); }
+.card-head { display: flex; align-items: center; gap: 14px; margin-bottom: 26px; }
+.card-head.top-align { align-items: flex-start; }
+.card-head .title { display: flex; align-items: center; gap: 8px 12px; flex-wrap: wrap; }
+.card-head h4 { font-family: var(--font-display); font-weight: 400; color: var(--foreground); font-size: 24px; margin: 0; line-height: 1.15; }
+.card-head .sub { font-size: 14px; color: var(--muted-foreground); margin: 6px 0 0; display: inline-block; padding: 0 4px; }
+.details { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius-card); padding: 6px 20px; }
+.detail { display: grid; grid-template-columns: 170px 1fr; gap: 12px; padding: 11px 0; border-bottom: 1px solid var(--border); font-size: 14px; }
+.detail:last-child { border-bottom: 0; }
+.detail .k { color: var(--muted-foreground); }
+.detail.stack { grid-template-columns: 1fr; gap: 2px; }
+.empty { color: var(--muted-foreground); font-style: italic; }
+.notes { white-space: pre-line; color: var(--foreground); }
+.stage { position: relative; background: color-mix(in oklch, var(--background) 70%, black); border: 1px solid var(--border); border-radius: var(--radius-card); padding: 28px 16px; }
+.stage .behind { position: absolute; inset: 14px 18px auto; font-size: 13px; color: color-mix(in oklch, var(--muted-foreground) 45%, transparent); }
+.modal { position: relative; background: var(--popover); color: var(--popover-foreground); border: 1px solid var(--border-strong); border-radius: var(--radius-card); padding: 18px 20px 20px; max-width: 500px; margin: 18px auto 0; box-shadow: 0 24px 60px -20px rgba(0, 0, 0, 0.7); }
+.modal.narrow { max-width: 420px; }
+.modal-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 6px; }
+.modal-head .t { font-family: var(--font-display); color: var(--foreground); font-size: 18px; }
+.modal-head .x { color: var(--muted-foreground); }
+.modal-actions { display: flex; gap: 12px; margin-top: 18px; flex-wrap: wrap; }
+.modal-actions.end { justify-content: flex-end; }
+.field { margin: 12px 0; }
+.field .k { font-size: 14px; color: var(--foreground); font-weight: 500; margin-bottom: 5px; }
+.input { display: flex; align-items: center; gap: 8px; border: 1px solid var(--input); border-radius: 10px; padding: 8px 12px; font-size: 14px; min-height: 40px; color: var(--foreground); }
+.input.area { align-items: flex-start; min-height: 74px; white-space: pre-line; }
+.input .ph { color: var(--muted-foreground); }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.list-title { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; margin: 4px 0 12px; }
+.list-title .t { font-family: var(--font-display); color: var(--foreground); font-size: 24px; }
+.callouts { margin: 14px 0 0; padding-left: 20px; font-size: 14px; color: var(--muted-foreground); }
+.callouts li { margin: 4px 0; }
+.btn-primary { background: var(--primary); color: var(--primary-foreground); font-size: 14px; padding: 9px 15px; }
+.search { display: flex; align-items: center; gap: 8px; background: var(--card); border: 1px solid var(--input); border-radius: var(--radius-xl); padding: 9px 12px; color: var(--muted-foreground); font-size: 15px; margin-bottom: 12px; }
+.panel { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius-card); overflow: hidden; }
+.lrow { display: flex; align-items: center; gap: 10px; padding: 10px 16px; border-top: 1px solid var(--border); }
+.lrow:first-child { border-top: 0; }
+.lrow .nm { color: var(--foreground); font-weight: 600; }
+.lrow .meta { font-size: 13px; color: var(--muted-foreground); }
+.lrow.hl { background: var(--primary-soft); }
+.lrow .badge { margin-left: auto; font-size: 12px; color: var(--primary); font-weight: 600; }
+.gone { display: flex; align-items: center; gap: 10px; background: var(--card); border: 1px dashed var(--border-strong); border-radius: 16px; padding: 12px 16px; font-size: 14px; color: var(--muted-foreground); }
+.gone s { color: var(--card-foreground); }
+
+/* Rules */
+.rules { display: grid; gap: 12px; }
+.rule { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 16px 20px; }
+.rule .h { font-weight: 600; color: var(--foreground); margin-bottom: 4px; }
+.example { font-size: 14px; background: var(--secondary); border-left: 3px solid var(--primary); padding: 8px 12px; margin-top: 10px; border-radius: 0 10px 10px 0; }
+
+/* Checklist */
+.prep { background: var(--secondary); border-radius: 14px; padding: 14px 18px; font-size: 15px; }
+.prep p { margin: 6px 0; }
+.check-group { margin-bottom: 8px; }
+.check { display: flex; gap: 12px; align-items: flex-start; padding: 11px 14px; background: var(--card); border: 1px solid var(--border); border-radius: 12px; margin: 6px 0; cursor: pointer; }
+.check:hover { border-color: var(--border-strong); }
+.check input { margin-top: 4px; accent-color: var(--primary); width: 17px; height: 17px; flex-shrink: 0; }
+.check:has(input:checked) .sc { text-decoration: line-through; text-decoration-color: var(--muted-foreground); }
+.check .sc { font-weight: 600; color: var(--foreground); }
+.check .st { font-size: 14px; }
+.check .arrow { color: var(--primary); font-weight: 700; }
+.hint { display: inline-block; font-size: 12px; font-weight: 500; color: var(--muted-foreground); border: 1px solid var(--border-strong); border-radius: 999px; padding: 0 8px; margin-left: 6px; vertical-align: 1px; }
+
+.two { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; align-items: start; }
+.box-card h3 { margin-top: 0; }
+.agreed { margin-top: 18px; font-size: 14px; }
+footer { margin-top: 64px; font-size: 13px; color: var(--muted-foreground); border-top: 1px solid var(--line); padding-top: 16px; }
+
+@media (max-width: 720px) {
+  h1 { font-size: 30px; }
+  h2 { font-size: 22px; margin-top: 52px; }
+  .two { grid-template-columns: 1fr; }
+  .detail { grid-template-columns: 1fr; gap: 3px; }
+  .grid2 { grid-template-columns: 1fr; }
+  .card { padding: 18px; }
+}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-pencil" viewBox="0 0 24 24"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></symbol>
+  <symbol id="i-trash" viewBox="0 0 24 24"><path d="M10 11v6"/><path d="M14 11v6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></symbol>
+  <symbol id="i-arrow-left" viewBox="0 0 24 24"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></symbol>
+  <symbol id="i-file" viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/></symbol>
+  <symbol id="logo" viewBox="0 0 32 32"><rect class="tile" width="32" height="32" rx="9"/><path class="cat" d="M8 25 L8 9 L12.5 13 L19.5 13 L24 9 L24 25 Z" stroke-width="2.5" stroke-linejoin="round"/><circle class="eye" cx="13" cy="19" r="1.6"/><circle class="eye" cx="19" cy="19" r="1.6"/></symbol>
+</svg>
+
+<div class="page">
+
+<header class="top">
+  <svg class="logo"><use href="#logo"/></svg>
+  <span class="name">черный список</span>
+  <span class="pill">обзор фичи</span>
+</header>
+
+<h1>Карточка для просмотра, правка и добавление в окнах</h1>
+<p class="lead">Карточка перестаёт быть формой: данные показаны текстом, а рядом с именем — карандаш и корзина. Карандаш открывает окно «Редактировать контакт», корзина спрашивает, точно ли удалить. Новый человек добавляется в таком же окне прямо на главной — отдельной страницы больше нет.</p>
+<div class="chips">
+  <span class="chip accent">Спроектирована, ещё не сделана</span>
+  <span class="chip">Задачи: 0 из 13</span>
+  <span class="chip">Автотестов нет</span>
+  <span class="chip">База не меняется</span>
+  <span class="chip">Изменение <code>contact-card-read-mode</code></span>
+</div>
+
+<!-- 1 -->
+<h2><span class="num">1</span>Коротко</h2>
+<ul class="points">
+  <li>Карточка контакта открывается в режиме просмотра: только текст, без полей ввода и кнопки «Сохранить».</li>
+  <li>Изменить данные — в окне «Редактировать контакт» по карандашу у имени. Удалить — по корзине у имени, с вопросом «Удалить контакт?».</li>
+  <li>Добавить человека — в окне «Новый чертила» по кнопке «Добавить черта» на главной. Окно такое же, как окно редактирования, только с пустыми полями. Страницы «Новый чертила» больше нет.</li>
+  <li>Даты под именем — без времени и без «г.», по московскому времени. В пустых «Заметках» обоих окон — новая подсказка «Что натворил, что обещал, что припомнить».</li>
+  <li>Это первый шаг перед большой фичей <code>new-features-and-keep-in-touch</code>: история мести, «Как часто припоминать» и «Пора мстить» придут с ней.</li>
+  <li>Статус: <b>спроектирована</b>, код ещё не писали. Отмечено 0 задач из 13. Автотестов (программ, которые сами проходят сценарии) в проекте нет: проверка — сборкой и руками. База данных не меняется, миграций (скриптов, которые меняют устройство базы) нет.</li>
+</ul>
+
+<!-- 2 -->
+<h2><span class="num">2</span>Что появится на экранах</h2>
+<p class="muted small">Наброски, не точные макеты. Имена, даты и тексты — правдоподобные примеры. Точные макеты лежат рядом с фичой — откройте их, чтобы сверить вид:</p>
+<div class="mock-links">
+  <a href="mockups/Card.dc.html"><svg class="i"><use href="#i-file"/></svg>Карточка · компьютер</a>
+  <a href="mockups/Card-phone.dc.html"><svg class="i"><use href="#i-file"/></svg>Карточка · телефон</a>
+  <a href="mockups/Edit.dc.html"><svg class="i"><use href="#i-file"/></svg>Окно редактирования · компьютер</a>
+  <a href="mockups/Edit-phone.dc.html"><svg class="i"><use href="#i-file"/></svg>Окно редактирования · телефон</a>
+</div>
+<p class="muted small">На макетах есть строка «мстили …», поле «Как часто припоминать» и раздел «Последняя месть» — их в этой фиче нет, они придут с большой фичей. На набросках ниже их тоже нет. Отдельного макета окна «Новый чертила» нет: оно повторяет окно редактирования с пустыми полями.</p>
+<div class="legend-row">
+  <span><i class="sw new"></i>новое</span>
+  <span><i class="sw changed"></i>было, но изменилось</span>
+</div>
+
+<div class="screens">
+
+  <!-- Card, desktop -->
+  <div>
+    <p class="screen-title">Карточка контакта — компьютер</p>
+    <div class="device">
+      <div class="back"><svg class="i"><use href="#i-arrow-left"/></svg>Весь список</div>
+      <div class="card-head">
+        <span class="avatar accent big">АС</span>
+        <div>
+          <div class="title">
+            <h4>Анна Смирнова</h4>
+            <span class="is-new" style="display:inline-flex;gap:6px;padding:2px"><span class="new-tag">новое</span>
+              <span class="icon-btn"><span class="tip">Редактировать</span><svg class="i"><use href="#i-pencil"/></svg></span>
+              <span class="icon-btn danger"><svg class="i"><use href="#i-trash"/></svg></span>
+            </span>
+          </div>
+          <div><span class="sub is-changed" style="margin-top:14px"><span class="new-tag changed">без времени</span>Добавлен 12 марта 2025 · изменён 20 октября 2026</span></div>
+        </div>
+      </div>
+
+      <div class="details is-changed"><span class="new-tag changed">текст вместо формы</span>
+        <div class="detail"><span class="k">Откуда знакомы</span><span>Работали вместе в «Ромашке»</span></div>
+        <div class="detail"><span class="k">Телефон</span><span>+7 900 123-45-67</span></div>
+        <div class="detail"><span class="k">Почта</span><span class="empty">не указано</span></div>
+        <div class="detail"><span class="k">Заметки</span><span class="notes">День рождения 12 мая. Любит джаз.
+
+08.10.2025 — Встретились на кофе. Сейчас ищет работу в продукте.</span></div>
+      </div>
+    </div>
+    <ul class="callouts">
+      <li>Отдельного поля «Имя» больше нет: имя только в заголовке. Пустое поле подписано «не указано», заметки сохраняют абзацы.</li>
+      <li>Подсказка «Редактировать» / «Удалить» всплывает при наведении мышью и при переходе клавишей Tab.</li>
+      <li>«· изменён …» видно, только если карточку меняли позже чем через минуту после создания — как и сейчас.</li>
+      <li>Кнопки «Сохранить» и «Удалить» внизу, как сейчас, больше нет.</li>
+    </ul>
+  </div>
+
+  <!-- Card, phone -->
+  <div>
+    <p class="screen-title">Карточка контакта — телефон</p>
+    <div class="device phone">
+      <div class="back"><svg class="i"><use href="#i-arrow-left"/></svg>Весь список</div>
+      <div class="card-head top-align">
+        <span class="avatar accent big">АС</span>
+        <div>
+          <h4>Анна Смирнова</h4>
+          <div><span class="sub" style="padding:0">Добавлен 12 марта 2025 · изменён 20 октября 2026</span></div>
+          <span class="is-new" style="display:inline-flex;gap:8px;margin-top:14px;padding:2px"><span class="new-tag">новое</span>
+            <span class="icon-btn lg"><svg class="i"><use href="#i-pencil"/></svg></span>
+            <span class="icon-btn lg danger"><svg class="i"><use href="#i-trash"/></svg></span>
+          </span>
+        </div>
+      </div>
+      <div class="details">
+        <div class="detail stack"><span class="k">Откуда знакомы</span><span>Работали вместе в «Ромашке»</span></div>
+        <div class="detail stack"><span class="k">Телефон</span><span>+7 900 123-45-67</span></div>
+        <div class="detail stack"><span class="k">Почта</span><span class="empty">не указано</span></div>
+        <div class="detail stack"><span class="k">Заметки</span><span class="notes">День рождения 12 мая. Любит джаз.</span></div>
+      </div>
+    </div>
+    <ul class="callouts">
+      <li>На телефоне иконки стоят под строкой дат и крупнее — 44×44, чтобы попадать пальцем.</li>
+      <li>Подписи полей — над значениями. Длинные заметки и слова без пробелов переносятся и не вылезают за край.</li>
+    </ul>
+  </div>
+
+  <!-- Edit dialog -->
+  <div>
+    <p class="screen-title">Окно «Редактировать контакт»</p>
+    <div class="stage is-new"><span class="new-tag">новое окно</span>
+      <span class="behind">карточка под затемнением</span>
+      <div class="modal">
+        <div class="modal-head"><span class="t">Редактировать контакт</span><svg class="i x"><use href="#i-x"/></svg></div>
+        <div class="field"><div class="k">Имя</div><div class="input">Анна Смирнова</div></div>
+        <div class="field"><div class="k">Откуда знакомы</div><div class="input">Работали вместе в «Ромашке»</div></div>
+        <div class="grid2">
+          <div class="field" style="margin:0"><div class="k">Телефон</div><div class="input">+7 900 123-45-67</div></div>
+          <div class="field" style="margin:0"><div class="k">Почта</div><div class="input"><span class="ph">name@example.com</span></div></div>
+        </div>
+        <div class="field" style="margin-top:12px"><div class="k">Заметки</div><div class="input area">День рождения 12 мая. Любит джаз.</div></div>
+        <div class="modal-actions"><span class="btn btn-cta">Сохранить</span><span class="btn btn-ghost">Отмена</span></div>
+      </div>
+    </div>
+    <ul class="callouts">
+      <li>Поля и проверки те же, что в окне «Новый чертила». При открытии курсор стоит в поле «Имя».</li>
+      <li>«Сохранить» — окно закрывается, карточка сразу обновляется, дата «изменён» становится сегодняшней, вверху появляется «Изменения сохранены».</li>
+      <li>«Отмена», Esc и крестик закрывают окно без сохранения. Щелчок мимо окна его не закрывает.</li>
+      <li>На телефоне окно почти во всю ширину экрана и прокручивается, если не помещается.</li>
+    </ul>
+  </div>
+
+  <!-- Delete confirmation -->
+  <div>
+    <p class="screen-title">Вопрос «Удалить контакт?»</p>
+    <div class="stage">
+      <span class="behind">карточка под затемнением</span>
+      <div class="modal narrow">
+        <div class="modal-head"><span class="t">Удалить контакт?</span></div>
+        <p class="small">Контакт «Анна Смирнова» и заметки о нём удалятся насовсем. Вернуть их будет нельзя.</p>
+        <div class="modal-actions end"><span class="btn btn-outline focused">Отмена</span><span class="btn btn-danger">Удалить</span></div>
+      </div>
+    </div>
+    <ul class="callouts">
+      <li>Само окно — как сейчас: тот же текст, фокус на «Отмена», чтобы случайный Enter ничего не удалил. Меняется только то, что открывает его теперь корзина у имени.</li>
+      <li>После удаления открывается главная, вверху — «Контакт «Анна Смирнова» удалён».</li>
+    </ul>
+  </div>
+
+  <!-- Home -->
+  <div>
+    <p class="screen-title">Главная — после добавления</p>
+    <div class="device">
+      <div class="list-title">
+        <span class="t">Косячники</span>
+        <span class="is-changed" style="display:inline-flex"><span class="new-tag changed">открывает окно</span><span class="btn btn-primary">+ Добавить черта</span></span>
+      </div>
+      <div class="search">Найти по имени</div>
+      <div class="panel">
+        <div class="lrow"><span class="avatar">АС</span><div><div class="nm">Анна Смирнова</div><div class="meta">Работали вместе в «Ромашке»</div></div></div>
+        <div class="lrow hl"><span class="avatar accent">БК</span><div><div class="nm">Борис Котов</div><div class="meta">Сосед по даче</div></div><span class="badge">только что добавлен</span></div>
+        <div class="lrow"><span class="avatar">ВО</span><div><div class="nm">Вера Орлова</div><div class="meta">Бывшая начальница</div></div></div>
+      </div>
+    </div>
+    <ul class="callouts">
+      <li>Кнопка «Добавить черта» выглядит как раньше, но открывает окно поверх главной, а не новую страницу.</li>
+      <li>После добавления — как сейчас: поиск сбрасывается, список прокручивается к новому человеку и подсвечивает его, вверху «Контакт «Борис Котов» добавлен».</li>
+    </ul>
+  </div>
+
+  <!-- Add dialog -->
+  <div>
+    <p class="screen-title">Окно «Новый чертила»</p>
+    <div class="stage is-new"><span class="new-tag">новое окно</span>
+      <span class="behind">главная под затемнением</span>
+      <div class="modal">
+        <div class="modal-head"><span class="t">Новый чертила</span><svg class="i x"><use href="#i-x"/></svg></div>
+        <div class="field"><div class="k">Имя</div><div class="input"><span class="ph">Например: Анна Смирнова</span></div></div>
+        <div class="field"><div class="k">Откуда знакомы</div><div class="input"><span class="ph">Например: учились вместе в университете</span></div></div>
+        <div class="grid2">
+          <div class="field" style="margin:0"><div class="k">Телефон</div><div class="input"><span class="ph">+7 900 123-45-67</span></div></div>
+          <div class="field" style="margin:0"><div class="k">Почта</div><div class="input"><span class="ph">name@example.com</span></div></div>
+        </div>
+        <div class="field is-changed" style="margin-top:22px"><span class="new-tag changed">новая подсказка</span><div class="k">Заметки</div><div class="input area"><span class="ph">Что натворил, что обещал, что припомнить</span></div></div>
+        <div class="modal-actions"><span class="btn btn-cta">Добавить черта</span><span class="btn btn-ghost">Отмена</span></div>
+      </div>
+    </div>
+    <ul class="callouts">
+      <li>Поля пустые, серые подсказки в них прежние, кроме «Заметок»: было «О чём говорили, о чём договорились».</li>
+      <li>Ведёт себя как окно редактирования: курсор в «Имя», «Отмена», Esc и крестик закрывают без сохранения, щелчок мимо окна не закрывает, при ошибке окно остаётся открытым.</li>
+      <li>При следующем открытии поля снова пустые: брошенный ввод не запоминается.</li>
+    </ul>
+    <div class="gone" style="margin-top:16px"><span>Страница <s>«Новый чертила»</s> исчезает. По её старому адресу <code>/contacts/new</code> откроется страница «Контакт не найден» с кнопкой «К списку контактов».</span></div>
+  </div>
+
+</div>
+
+<!-- 3 -->
+<h2><span class="num">3</span>Как это работает</h2>
+<div class="rules">
+  <div class="rule">
+    <div class="h">Карточка — только для чтения</div>
+    <p>Полей ввода в карточке нет. Изменить что-то можно только через окно «Редактировать контакт».</p>
+  </div>
+  <div class="rule">
+    <div class="h">Даты — без времени и по Москве</div>
+    <p>Под именем «Добавлен …» и, если карточку меняли позже чем через минуту после создания, «· изменён …». Только число, месяц словом и год.</p>
+    <div class="example">Контакт добавлен 23 октября в 22:30 по всемирному времени (UTC) — в Москве это уже 24 октября, 01:30 → в карточке «Добавлен 24 октября 2026».</div>
+  </div>
+  <div class="rule">
+    <div class="h">Пустое поле — «не указано»</div>
+    <p>Касается всех четырёх полей, в том числе «Заметок». Заметки показываются как написаны: с переносами строк и пустыми строками между абзацами.</p>
+  </div>
+  <div class="rule">
+    <div class="h">Окна каждый раз открываются «с чистого листа»</div>
+    <p>Брошенный ввод не запоминается. «Редактировать контакт» показывает то, что лежит в базе, «Новый чертила» — пустые поля.</p>
+    <div class="example">Стёрли телефон → «Отмена» → снова «Редактировать» → телефон на месте.<br>Ввели имя в «Новый чертила» → Esc → снова «Добавить черта» → поля пустые.</div>
+  </div>
+  <div class="rule">
+    <div class="h">Окно закрывается только после ответа сервера</div>
+    <p>Так работают и «Сохранить» в окне редактирования, и «Добавить черта» в окне добавления.</p>
+    <ul class="points">
+      <li>Сохранилось — окно закрывается, страница обновляется без перезагрузки.</li>
+      <li>Ошибка в поле (например, пустое имя) — окно открыто, у поля «Укажите имя», в базе ничего не меняется.</li>
+      <li>Сервер недоступен — окно открыто с введёнными данными и сообщением об ошибке.</li>
+      <li>Контакт успели удалить в другой вкладке, а его правят — сообщение «Этот контакт не найден. Возможно, его удалили.»</li>
+    </ul>
+  </div>
+  <div class="rule">
+    <div class="h">Новый человек сразу на виду</div>
+    <p>После «Добавить черта» поиск на главной сбрасывается, список прокручивается к новому контакту и подсвечивает его. Так было и со страницей — поведение не меняется.</p>
+  </div>
+  <div class="rule">
+    <div class="h">Отдельной страницы добавления больше нет</div>
+    <p>Добавить человека можно только кнопкой «Добавить черта» на главной. Старый адрес <code>/contacts/new</code> (например, из закладки) показывает «Контакт не найден» с кнопкой «К списку контактов».</p>
+  </div>
+  <div class="rule">
+    <div class="h">Удаление — только после «Удалить» в вопросе</div>
+    <p>Корзина сама ничего не удаляет: сначала вопрос. «Отмена» оставляет контакт. Удаляется контакт вместе с заметками.</p>
+  </div>
+  <div class="rule">
+    <div class="h">Чего в этой фиче нет</div>
+    <p>Строки «мстили …», поля «Как часто припоминать», раздела «Последняя месть» и упоминания истории мести в вопросе об удалении. Всё это добавит фича <code>new-features-and-keep-in-touch</code> — её делают после этой.</p>
+  </div>
+</div>
+
+<!-- 4 -->
+<h2><span class="num">4</span>Как проверить руками</h2>
+<div class="prep">
+  <p><b>Подготовка.</b> Запустите приложение локально (<code>pnpm dev</code>, см. README) и откройте главную.</p>
+  <p>Понадобятся: контакт без почты и без заметок, контакт с заметками из трёх абзацев и <b>отдельный тестовый контакт для удаления</b> — создайте его в окне «Новый чертила» (кнопка «Добавить черта» на главной). Настоящие контакты не удаляйте.</p>
+  <p class="muted small">Галочки на этой странице только для удобства и не сохраняются.</p>
+</div>
+
+<div class="check-group">
+  <h3>Режим просмотра</h3>
+  <label class="check"><input type="checkbox"><div><div class="sc">Открытие карточки из списка</div><div class="st">На главной нажать на контакт <span class="arrow">→</span> данные текстом, полей ввода и кнопки «Сохранить» нет.</div></div></label>
+  <label class="check"><input type="checkbox"><div><div class="sc">Контакта нет</div><div class="st">Открыть адрес <code>localhost:3000/contacts/999999</code> <span class="arrow">→</span> страница «Контакт не найден», как и раньше.</div></div></label>
+  <label class="check"><input type="checkbox"><div><div class="sc">Ссылка «Весь список»</div><div class="st">В карточке нажать «Весь список» над аватаром <span class="arrow">→</span> открылась главная со списком.</div></div></label>
+</div>
+
+<div class="check-group">
+  <h3>Заголовок карточки</h3>
+  <label class="check"><input type="checkbox"><div><div class="sc">Кнопки у имени</div><div class="st">Открыть любой контакт <span class="arrow">→</span> рядом с именем карандаш и корзина.</div></div></label>
+  <label class="check"><input type="checkbox"><div><div class="sc">Подсказка у иконки</div><div class="st">Навести мышь на карандаш <span class="arrow">→</span> подсказка «Редактировать». Обновить страницу, нажимать Tab, пока не выделится карандаш <span class="arrow">→</span> та же подсказка.</div></div></label>
+  <label class="check"><input type="checkbox"><div><div class="sc">Экранный диктор <span class="hint">по желанию</span></div><div class="st">Включить Экранный диктор Windows (Ctrl + Win + Enter), клавишей Tab дойти до корзины <span class="arrow">→</span> слышно «Удалить, кнопка». Выключить тем же сочетанием.</div></div></label>
+</div>
+
+<div class="check-group">
+  <h3>Даты добавления и изменения</h3>
+  <label class="check"><input type="checkbox"><div><div class="sc">Карточку не меняли</div><div class="st">Создать новый контакт и открыть его <span class="arrow">→</span> только «Добавлен &lt;сегодня&gt;», без «изменён», без времени и без «г.».</div></div></label>
+  <label class="check"><input type="checkbox"><div><div class="sc">Карточку меняли</div><div class="st">Подождать минуту, в окне редактирования поменять телефон и сохранить <span class="arrow">→</span> «Добавлен … · изменён &lt;сегодня&gt;», время не показано.</div></div></label>
+  <label class="check"><input type="checkbox"><div><div class="sc">Дата по московскому времени <span class="hint">проверяется командой</span></div><div class="st">Руками не воспроизвести без ночного ожидания: нужен контакт, добавленный между 00:00 и 03:00 по Москве. Проверяется командой в задаче 2.1 — по ней 23 октября 22:30 UTC даёт «24 октября 2026».</div></div></label>
+</div>
+
+<div class="check-group">
+  <h3>Поля в режиме просмотра</h3>
+  <label class="check"><input type="checkbox"><div><div class="sc">Порядок полей</div><div class="st">Открыть любой контакт <span class="arrow">→</span> «Откуда знакомы», «Телефон», «Почта», «Заметки»; отдельного поля «Имя» нет.</div></div></label>
+  <label class="check"><input type="checkbox"><div><div class="sc">Пустое поле</div><div class="st">Открыть контакт без почты <span class="arrow">→</span> в «Почта» написано «не указано».</div></div></label>
+  <label class="check"><input type="checkbox"><div><div class="sc">Пустые заметки</div><div class="st">Тот же контакт без заметок <span class="arrow">→</span> в «Заметки» написано «не указано».</div></div></label>
+  <label class="check"><input type="checkbox"><div><div class="sc">Многострочные заметки</div><div class="st">Открыть контакт с тремя абзацами в заметках <span class="arrow">→</span> три абзаца, а не одна строка.</div></div></label>
+</div>
+
+<div class="check-group">
+  <h3>Окно «Редактировать контакт»</h3>
+  <label class="check"><input type="checkbox"><div><div class="sc">Открытие окна</div><div class="st">Нажать карандаш <span class="arrow">→</span> поверх карточки окно «Редактировать контакт» с полями Имя, Откуда знакомы, Телефон, Почта, Заметки, заполненными данными контакта; курсор в поле «Имя».</div></div></label>
+  <label class="check"><input type="checkbox"><div><div class="sc">Ошибка в поле</div><div class="st">Стереть имя → «Сохранить» <span class="arrow">→</span> окно открыто, у поля «Имя» ошибка «Укажите имя»; закрыть окно — имя в карточке прежнее.</div></div></label>
+  <label class="check"><input type="checkbox"><div><div class="sc">Подсказка в «Заметках»</div><div class="st">Открыть окно у контакта без заметок <span class="arrow">→</span> в пустом поле серым «Что натворил, что обещал, что припомнить». То же в окне «Новый чертила».</div></div></label>
+</div>
+
+<div class="check-group">
+  <h3>Сохранение изменений</h3>
+  <label class="check"><input type="checkbox"><div><div class="sc">Успешное сохранение</div><div class="st">Поменять телефон → «Сохранить» <span class="arrow">→</span> окно закрылось, в карточке новый телефон, дата «изменён» сегодняшняя.</div></div></label>
+  <label class="check"><input type="checkbox"><div><div class="sc">Видно в другом браузере</div><div class="st">Открыть ту же карточку в другом браузере <span class="arrow">→</span> там новый телефон.</div></div></label>
+  <label class="check"><input type="checkbox"><div><div class="sc">Сервер недоступен</div><div class="st">Открыть окно, поменять поле. В терминале остановить приложение (Ctrl + C) → «Сохранить» <span class="arrow">→</span> окно открыто, введённое на месте, сообщение об ошибке. Потом снова <code>pnpm dev</code>.</div></div></label>
+  <label class="check"><input type="checkbox"><div><div class="sc">Контакт уже удалили</div><div class="st">Тестовый контакт открыть в двух вкладках. В первой открыть окно редактирования. Во второй удалить контакт. В первой нажать «Сохранить» <span class="arrow">→</span> «Этот контакт не найден. Возможно, его удалили.»</div></div></label>
+</div>
+
+<div class="check-group">
+  <h3>Отмена редактирования</h3>
+  <label class="check"><input type="checkbox"><div><div class="sc">Отмена</div><div class="st">Поменять имя → «Отмена» <span class="arrow">→</span> окно закрылось, в карточке прежнее имя; обновить страницу — прежнее имя.</div></div></label>
+  <label class="check"><input type="checkbox"><div><div class="sc">Esc и крестик</div><div class="st">Поменять поле → Esc <span class="arrow">→</span> окно закрылось без сохранения. То же — крестиком. Щелчок по затемнению мимо окна окно не закрывает.</div></div></label>
+  <label class="check"><input type="checkbox"><div><div class="sc">Повторное открытие после отмены</div><div class="st">После отмены снова нажать карандаш <span class="arrow">→</span> в окне сохранённые значения, а не брошенные правки.</div></div></label>
+</div>
+
+<div class="check-group">
+  <h3>Удаление контакта — только на тестовом контакте</h3>
+  <label class="check"><input type="checkbox"><div><div class="sc">Подтверждение удаления</div><div class="st">Нажать корзину <span class="arrow">→</span> вопрос «Удалить контакт?»: контакт и заметки удалятся насовсем; выделена кнопка «Отмена».</div></div></label>
+  <label class="check"><input type="checkbox"><div><div class="sc">Отмена удаления</div><div class="st">На вопросе нажать «Отмена» <span class="arrow">→</span> вопрос закрылся, контакт на месте.</div></div></label>
+  <label class="check"><input type="checkbox"><div><div class="sc">Удаление</div><div class="st">Корзина → «Удалить» <span class="arrow">→</span> открылась главная, контакта в списке нет, вверху «Контакт «…» удалён».</div></div></label>
+</div>
+
+<div class="check-group">
+  <h3>Окно «Новый чертила»</h3>
+  <label class="check"><input type="checkbox"><div><div class="sc">Кнопка добавления</div><div class="st">На главной нажать «Добавить черта» <span class="arrow">→</span> поверх главной окно «Новый чертила» с пустыми полями, адрес в браузере не поменялся.</div></div></label>
+  <label class="check"><input type="checkbox"><div><div class="sc">Вид окна</div><div class="st">В окне заголовок «Новый чертила», пустые поля Имя, Откуда знакомы, Телефон, Почта, Заметки, кнопки «Добавить черта» и «Отмена»; курсор в поле «Имя».</div></div></label>
+  <label class="check"><input type="checkbox"><div><div class="sc">Добавление</div><div class="st">Ввести имя → «Добавить черта» <span class="arrow">→</span> окно закрылось, список прокручен к новому человеку, он подсвечен, вверху «Контакт «…» добавлен».</div></div></label>
+  <label class="check"><input type="checkbox"><div><div class="sc">Ошибка в поле</div><div class="st">Оставить имя пустым → «Добавить черта» <span class="arrow">→</span> окно открыто, у поля «Имя» ошибка «Укажите имя»; закрыть окно — нового контакта в списке нет.</div></div></label>
+  <label class="check"><input type="checkbox"><div><div class="sc">Сервер недоступен</div><div class="st">Ввести имя, в терминале остановить приложение (Ctrl + C) → «Добавить черта» <span class="arrow">→</span> окно открыто, имя на месте, сообщение об ошибке. Потом снова <code>pnpm dev</code>.</div></div></label>
+  <label class="check"><input type="checkbox"><div><div class="sc">Отмена</div><div class="st">Ввести имя → «Отмена» <span class="arrow">→</span> окно закрылось, нового контакта нет.</div></div></label>
+  <label class="check"><input type="checkbox"><div><div class="sc">Esc и крестик</div><div class="st">Ввести имя → Esc <span class="arrow">→</span> окно закрылось без добавления. То же крестиком. Щелчок по затемнению мимо окна окно не закрывает.</div></div></label>
+  <label class="check"><input type="checkbox"><div><div class="sc">Повторное открытие после отмены</div><div class="st">После отмены снова нажать «Добавить черта» <span class="arrow">→</span> поля пустые.</div></div></label>
+  <label class="check"><input type="checkbox"><div><div class="sc">Старый адрес страницы добавления</div><div class="st">Открыть <code>localhost:3000/contacts/new</code> <span class="arrow">→</span> «Контакт не найден» с кнопкой «К списку контактов», формы добавления нет.</div></div></label>
+</div>
+
+<div class="check-group">
+  <h3>Главный сценарий и телефон</h3>
+  <label class="check"><input type="checkbox"><div><div class="sc">Главный сценарий из продуктовой идеи</div><div class="st">Главная → «Добавить черта» → ввести имя → «Добавить черта» <span class="arrow">→</span> человек подсвечен в списке → найти его по имени → карточка → карандаш → дописать заметку → «Сохранить» <span class="arrow">→</span> заметка в карточке; в другом браузере — тоже.</div></div></label>
+  <label class="check"><input type="checkbox"><div><div class="sc">Ширина телефона</div><div class="st">В браузере F12 → значок телефона → ширина 375 <span class="arrow">→</span> ничего не обрезано, нет прокрутки вбок, иконки под датами крупные, подписи над значениями; окна «Редактировать контакт» и «Новый чертила» прокручиваются, их кнопки доступны. Сверить с макетами телефона выше.</div></div></label>
+</div>
+
+<!-- 5 -->
+<h2><span class="num">5</span>Что агент решил сам</h2>
+<div class="two">
+  <div class="card box-card">
+    <h3>Продуктовые — стоит просмотреть</h3>
+    <p class="small muted">Записаны в proposal.md как решения по умолчанию — «их легко поменять».</p>
+    <ul class="points small">
+      <li>Даты «Добавлен / изменён» — по московскому времени, а не по времени сервера.</li>
+      <li>«· изменён …» — как сейчас: только если меняли позже чем через минуту после создания.</li>
+      <li>Пустые «Заметки» подписаны «не указано», как остальные поля.</li>
+      <li>Телефон и почта — простой текст, а не ссылки для звонка и письма.</li>
+      <li>После сохранения — прежнее сообщение «Изменения сохранены»; окно закрывается только после ответа сервера.</li>
+      <li>Если контакт удалили, пока окно открыто, — сообщение, окно остаётся открытым.</li>
+      <li>Щелчок мимо окна его не закрывает, чтобы не потерять ввод. Касается обоих окон.</li>
+      <li>Окно «Новый чертила» каждый раз открывается пустым: брошенный ввод не запоминается.</li>
+      <li>После добавления — всё как было со страницей: сброс поиска, прокрутка к новому человеку, подсветка, сообщение «Контакт «…» добавлен».</li>
+      <li>Окна «Новый чертила» в макете нет — оно собрано по образцу окна редактирования; название и кнопка «Добавить черта» взяты с прежней страницы.</li>
+      <li>Вопрос об удалении — прежний текст и прежнее сообщение «Контакт «…» удалён».</li>
+      <li>Надпись «Есть несохранённые изменения» убрана: правки в окне видны и так.</li>
+      <li>Из ссылки на макет нельзя понять, какой экран имелся в виду, поэтому рядом с фичой сохранены все её экраны: карточка и окно, компьютер и телефон.</li>
+    </ul>
+  </div>
+  <div class="card box-card">
+    <h3>Технические — на экраны не влияют</h3>
+    <ul class="points small">
+      <li>Карточку и главную собирает сервер; в браузере работают только кнопки у имени, кнопка «Добавить черта» и окна.</li>
+      <li>Одна форма и одна оболочка окна на «Новый чертила» и «Редактировать контакт»: поля, подсказки, проверки и поведение не расходятся.</li>
+      <li>После добавления адрес главной обновляется без новой записи в истории браузера: кнопка «Назад» не возвращает к тому же списку.</li>
+      <li>Страница добавления просто удаляется: её старый адрес сам попадает на уже существующую страницу «Контакт не найден», нового кода для этого не нужно.</li>
+      <li>Кнопки у имени нарисованы один раз и только переставляются для телефона — не две копии.</li>
+      <li>Подсказки и окно — готовые компоненты shadcn/ui (библиотеки готовых элементов интерфейса); новых библиотек не добавляется.</li>
+      <li>Часовой пояс — одна настройка в коде; ей же воспользуется большая фича.</li>
+      <li>Серверная часть сохранения и удаления не меняется.</li>
+      <li>Цвета и отступы — только из дизайн-токенов (общих настроек вида) приложения, а не из hex-кодов макета.</li>
+      <li>Копии макетов — как в оригинале, убрана только ссылка на служебный скрипт холста.</li>
+    </ul>
+  </div>
+</div>
+<p class="agreed muted">Согласовано с вами: что входит в фичу, а что остаётся в большой; «удаление» — это удаление контакта; новая подсказка в «Заметках»; копии макетов как в оригинале; добавление в окне вместо страницы; старый адрес страницы — «не найдено»; требование про ссылку «Весь список» переехало в спеку карточки.</p>
+
+<!-- 6 -->
+<h2><span class="num">6</span>Что осталось неясным</h2>
+<div class="card">
+  <p><b>Какая страница «не найдено» нужна по старому адресу <code>/contacts/new</code>?</b></p>
+  <p class="small">Вы выбрали «Страница не найдена». Без лишнего кода по этому адресу откроется страница «Контакт не найден»: «Возможно, ссылка неверная или контакт удалили» и кнопка «К списку контактов». По смыслу то же, но текст про контакт. Если нужна именно общая «Страница не найдена» — это небольшая доработка, скажите.</p>
+  <p class="small muted">Остальные решения по умолчанию собраны в разделе 5 — если какое-то не подходит, план можно поправить до реализации.</p>
+</div>
+
+<footer>Собрано по <code>openspec/changes/contact-card-read-mode/</code>: proposal, спеки <code>contact-card</code> и <code>contact-list</code>, design, tasks и копии макетов в <code>mockups/</code>. Фича ещё не сделана, поэтому код не сверялся. Страница только показывает и ничего не меняет.</footer>
+</div>
+</body>
+</html>

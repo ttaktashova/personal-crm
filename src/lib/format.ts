@@ -1,3 +1,5 @@
+import { APP_TIME_ZONE } from "@/lib/dates";
+
 // Russian plural forms: [one, few, many], e.g. ["контакт", "контакта", "контактов"].
 export function pluralize(count: number, forms: [string, string, string]): string {
   const mod100 = Math.abs(count) % 100;
@@ -8,24 +10,17 @@ export function pluralize(count: number, forms: [string, string, string]): strin
   return forms[2];
 }
 
-const dateFormat = new Intl.DateTimeFormat("ru-RU", {
+const longDateFormat = new Intl.DateTimeFormat("ru-RU", {
   day: "numeric",
   month: "long",
   year: "numeric",
+  timeZone: APP_TIME_ZONE,
 });
 
-const dateTimeFormat = new Intl.DateTimeFormat("ru-RU", {
-  day: "numeric",
-  month: "long",
-  year: "numeric",
-  hour: "2-digit",
-  minute: "2-digit",
-});
-
-export function formatDate(date: Date): string {
-  return dateFormat.format(date);
-}
-
-export function formatDateTime(date: Date): string {
-  return dateTimeFormat.format(date);
+// "24 октября 2026": built from parts, so the " г." suffix is left out.
+export function formatLongDate(date: Date): string {
+  const parts = longDateFormat.formatToParts(date);
+  const part = (type: Intl.DateTimeFormatPartTypes) =>
+    parts.find((p) => p.type === type)?.value ?? "";
+  return `${part("day")} ${part("month")} ${part("year")}`;
 }
