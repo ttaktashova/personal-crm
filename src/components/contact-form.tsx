@@ -8,11 +8,24 @@ import { createContact, updateContact } from "@/app/contacts/actions";
 import { Button } from "@/components/ui/button";
 import { Field, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  CONTACT_FREQUENCIES,
+  CONTACT_FREQUENCY_LABELS,
+  NO_FREQUENCY_LABEL,
+} from "@/lib/contact-frequency";
 import {
   contactInputSchema,
   toFieldErrors,
   type ContactFieldErrors,
+  type ContactFormValues,
   type ContactInput,
 } from "@/lib/contact-schema";
 
@@ -22,19 +35,31 @@ const EMPTY_CONTACT: ContactInput = {
   phone: "",
   email: "",
   notes: "",
+  contactFrequency: null,
 };
 
-function readForm(form: HTMLFormElement): ContactInput {
+function readForm(form: HTMLFormElement): ContactFormValues {
   const data = new FormData(form);
-  const text = (field: keyof ContactInput) => String(data.get(field) ?? "");
+  const text = (field: keyof ContactFormValues) => String(data.get(field) ?? "");
   return {
     name: text("name"),
     howWeMet: text("howWeMet"),
     phone: text("phone"),
     email: text("email"),
     notes: text("notes"),
+    // Checked by the schema: anything but a listed value is rejected.
+    contactFrequency: text("contactFrequency") as ContactFormValues["contactFrequency"],
   };
 }
+
+// The null item is "Не задано": the select shows its label and submits "".
+const FREQUENCY_ITEMS = [
+  { label: NO_FREQUENCY_LABEL, value: null },
+  ...CONTACT_FREQUENCIES.map((value) => ({
+    label: CONTACT_FREQUENCY_LABELS[value],
+    value,
+  })),
+];
 
 export type ContactFormTarget =
   | { mode: "create" }
@@ -200,6 +225,38 @@ export function ContactForm(props: ContactFormProps) {
             <FieldError>{errors.email}</FieldError>
           </Field>
         </div>
+
+        <Field data-invalid={!!errors.contactFrequency}>
+          <FieldLabel htmlFor="contactFrequency">Как часто припоминать</FieldLabel>
+          <Select
+            name="contactFrequency"
+            items={FREQUENCY_ITEMS}
+            defaultValue={initialValues.contactFrequency}
+            onValueChange={() => clearError("contactFrequency")}
+          >
+            {/* Looks like the text fields around it. Base UI marks the null item as
+                a placeholder, but "Не задано" is a value, so it keeps the text color. */}
+            <SelectTrigger
+              id="contactFrequency"
+              aria-invalid={!!errors.contactFrequency}
+              className="w-full rounded-xl bg-background px-3 text-base data-placeholder:text-foreground data-[size=default]:h-11 md:text-sm"
+            >
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {FREQUENCY_ITEMS.map((item) => (
+                <SelectItem
+                  key={item.label}
+                  value={item.value}
+                  className="py-2.5 pl-2.5 text-base md:py-2 md:text-sm"
+                >
+                  {item.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <FieldError>{errors.contactFrequency}</FieldError>
+        </Field>
 
         <Field data-invalid={!!errors.notes}>
           <FieldLabel htmlFor="notes">Заметки</FieldLabel>

@@ -42,3 +42,18 @@ export function formatShortDate(isoDate: string): string {
   const [year, month, day] = isoDate.split("-");
   return `${day}.${month}.${year}`;
 }
+
+// "2026-01-01" → "2025-12-31": calendar arithmetic in UTC, so no time zone can shift it.
+function previousIsoDate(isoDate: string): string {
+  const date = new Date(`${isoDate}T00:00:00Z`);
+  date.setUTCDate(date.getUTCDate() - 1);
+  return date.toISOString().slice(0, 10);
+}
+
+// Since when revenge is due: "пора сегодня", "пора со вчера" or "пора с 01.10.2026".
+// Both dates are "YYYY-MM-DD" in the app time zone.
+export function formatDueLabel(dueOn: string, today: string): string {
+  if (dueOn === today) return "пора сегодня";
+  if (dueOn === previousIsoDate(today)) return "пора со вчера";
+  return `пора с ${formatShortDate(dueOn)}`;
+}

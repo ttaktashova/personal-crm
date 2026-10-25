@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { CONTACT_FREQUENCIES } from "@/lib/contact-frequency";
+
 // Shared by the form (instant feedback) and the server actions (source of truth).
 // Messages are user-facing, hence in Russian.
 const emailFormat = z.email();
@@ -34,9 +36,16 @@ export const contactInputSchema = z.object({
     .string()
     .trim()
     .max(50_000, "Слишком длинные заметки: не больше 50 000 символов"),
+  // The form's "Не задано" sends "", which is stored as NULL.
+  contactFrequency: z
+    .enum(["", ...CONTACT_FREQUENCIES], "Выберите, как часто припоминать, из списка")
+    .transform((value) => (value === "" ? null : value)),
 });
 
-export type ContactInput = z.infer<typeof contactInputSchema>;
+// What the form sends: plain strings, "" for "Не задано".
+export type ContactFormValues = z.input<typeof contactInputSchema>;
+// What is saved and shown: frequency is null when not set.
+export type ContactInput = z.output<typeof contactInputSchema>;
 export type ContactField = keyof ContactInput;
 export type ContactFieldErrors = Partial<Record<ContactField, string>>;
 

@@ -61,6 +61,31 @@ export async function updateContact(
   return { status: "saved", id: updated.id };
 }
 
+export type StopRemindersResult = { status: "stopped" } | { status: "not-found" };
+
+// "Простить" on the main page: the frequency goes back to "Не задано". It is a card
+// change, so "изменён" moves; revenge records stay as they are.
+export async function stopReminders(id: unknown): Promise<StopRemindersResult> {
+  const contactId = parseId(id);
+  if (contactId === null) {
+    return { status: "not-found" };
+  }
+
+  const [updated] = await db
+    .update(contacts)
+    .set({ contactFrequency: null, updatedAt: sql`now()` })
+    .where(eq(contacts.id, contactId))
+    .returning({ id: contacts.id });
+
+  if (!updated) {
+    return { status: "not-found" };
+  }
+
+  revalidatePath("/");
+  revalidatePath(`/contacts/${contactId}`);
+  return { status: "stopped" };
+}
+
 export type DeleteContactResult = { status: "deleted" } | { status: "not-found" };
 
 export async function deleteContact(id: unknown): Promise<DeleteContactResult> {

@@ -42,6 +42,8 @@
   /* Text sizes missing from Tailwind's default scale */
   --text-caption: 0.8125rem; /* 13px */
   --text-ui: 0.9375rem; /* 15px */
+  --text-subtitle: 1.0625rem; /* 17px */
+  --text-title: 1.1875rem; /* 19px */
 
   /* Radii as on the landing: 12, 16, 24px and pills stay Tailwind's defaults */
   --radius-sm: calc(var(--radius) * 0.6);

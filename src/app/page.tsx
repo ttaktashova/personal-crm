@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 
 import { ContactDirectory } from "@/components/contact-directory";
+import { DueContacts } from "@/components/due-contacts";
 import { NewContactDialog } from "@/components/new-contact-dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { listContacts } from "@/lib/contacts";
@@ -19,6 +20,13 @@ export default function ContactsPage({ searchParams }: PageProps<"/">) {
         <h1 className="font-display text-3xl sm:text-4xl">Косячники</h1>
         <NewContactDialog />
       </header>
+
+      {/* The search row adds 8px on top: 24px to the search on a computer, 20px on a phone. */}
+      <div className="mt-3 mb-3 sm:mb-4">
+        <Suspense fallback={<DueContactsSkeleton />}>
+          <DueContacts />
+        </Suspense>
+      </div>
 
       <Suspense fallback={<DirectorySkeleton />}>
         <Directory searchParams={searchParams} />
@@ -39,6 +47,36 @@ async function Directory({
       contacts={contacts}
       highlightId={parseId(added)}
     />
+  );
+}
+
+// The same frame as the block, with the title and two rows.
+function DueContactsSkeleton() {
+  return (
+    <div
+      aria-busy
+      aria-label="Загружаем, кому пора мстить"
+      className="overflow-hidden rounded-card border bg-card"
+    >
+      <div className="px-4 pt-4 pb-2.5 sm:px-5 sm:pt-4.5 sm:pb-3">
+        <Skeleton className="h-6 w-40" />
+      </div>
+      {Array.from({ length: 2 }, (_, index) => (
+        <div
+          key={index}
+          className="flex items-center gap-2.5 border-t py-2.5 pr-3 pl-4 sm:gap-4 sm:px-5 sm:py-3.5"
+        >
+          <div className="flex flex-1 flex-col gap-2">
+            <Skeleton className="h-4 w-40" />
+            <Skeleton className="h-3 w-56 max-w-full" />
+          </div>
+          <div className="flex shrink-0 gap-2.5 sm:gap-2">
+            <Skeleton className="size-11 rounded-xl sm:h-9 sm:w-24 sm:rounded-lg" />
+            <Skeleton className="size-11 rounded-xl sm:h-9 sm:w-24 sm:rounded-lg" />
+          </div>
+        </div>
+      ))}
+    </div>
   );
 }
 
