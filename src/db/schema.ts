@@ -1,4 +1,18 @@
-import { date, index, integer, pgTable, text, timestamp } from "drizzle-orm/pg-core";
+import {
+  date,
+  index,
+  integer,
+  pgEnum,
+  pgTable,
+  text,
+  timestamp,
+} from "drizzle-orm/pg-core";
+
+// Relative import: drizzle-kit and the seed script load this file without the "@/" alias.
+import { CONTACT_FREQUENCIES } from "../lib/contact-frequency";
+
+// How often the owner wants to be reminded of a contact. NULL means "not set".
+export const contactFrequency = pgEnum("contact_frequency", CONTACT_FREQUENCIES);
 
 export const contacts = pgTable("contacts", {
   id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
@@ -7,6 +21,7 @@ export const contacts = pgTable("contacts", {
   phone: text("phone").notNull().default(""),
   email: text("email").notNull().default(""),
   notes: text("notes").notNull().default(""),
+  contactFrequency: contactFrequency("contact_frequency"),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),

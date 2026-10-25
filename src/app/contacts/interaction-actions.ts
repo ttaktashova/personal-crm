@@ -5,19 +5,41 @@ import { revalidatePath } from "next/cache";
 
 import { db } from "@/db";
 import { contacts, interactions } from "@/db/schema";
+import { todayIsoDate } from "@/lib/dates";
 import { parseId } from "@/lib/ids";
 import {
+  DEFAULT_INTERACTION_SUMMARY,
   interactionInputSchema,
   toFieldErrors,
   type InteractionFieldErrors,
 } from "@/lib/interaction-schema";
 
 // Revenge records never touch contacts.updated_at: "изменён" is about the card fields.
+// Every change revalidates the main page too: "Пора мстить" is counted from the records.
 
 export type SaveInteractionResult =
   | { status: "saved" }
   | { status: "invalid"; fieldErrors: InteractionFieldErrors }
   | { status: "not-found" };
+
+// Insert from a select on contacts: a deleted contact gives no row to insert,
+// which is easier to tell than a foreign key error wrapped by the driver.
+// Plain SQL: Drizzle's insert-select would also list the identity id column.
+// Returns false when the contact is gone.
+async function insertInteraction(
+  contactId: number,
+  occurredOn: string,
+  summary: string,
+): Promise<boolean> {
+  const inserted = await db.execute<{ id: number }>(sql`
+    insert into ${interactions} (contact_id, occurred_on, summary)
+    select ${contacts.id}, ${occurredOn}::date, ${summary}::text
+    from ${contacts}
+    where ${contacts.id} = ${contactId}
+    returning id
+  `);
+  return inserted.length > 0;
+}
 
 export async function addInteraction(
   contactId: unknown,
@@ -33,22 +55,31 @@ export async function addInteraction(
     return { status: "invalid", fieldErrors: toFieldErrors(parsed.error) };
   }
 
-  // Insert from a select on contacts: a deleted contact gives no row to insert,
-  // which is easier to tell than a foreign key error wrapped by the driver.
-  // Plain SQL: Drizzle's insert-select would also list the identity id column.
   const { occurredOn, summary } = parsed.data;
-  const inserted = await db.execute<{ id: number }>(sql`
-    insert into ${interactions} (contact_id, occurred_on, summary)
-    select ${contacts.id}, ${occurredOn}::date, ${summary}::text
-    from ${contacts}
-    where ${contacts.id} = ${id}
-    returning id
-  `);
-
-  if (inserted.length === 0) {
+  if (!(await insertInteraction(id, occurredOn, summary))) {
     return { status: "not-found" };
   }
 
+  revalidatePath("/");
+  revalidatePath(`/contacts/${id}`);
+  return { status: "saved" };
+}
+
+export type MarkContactedResult = { status: "saved" } | { status: "not-found" };
+
+// "Отомстил" on the main page: a record for today with the default text, no window.
+// Today is taken here on the server, not from the browser.
+export async function markContacted(contactId: unknown): Promise<MarkContactedResult> {
+  const id = parseId(contactId);
+  if (id === null) {
+    return { status: "not-found" };
+  }
+
+  if (!(await insertInteraction(id, todayIsoDate(), DEFAULT_INTERACTION_SUMMARY))) {
+    return { status: "not-found" };
+  }
+
+  revalidatePath("/");
   revalidatePath(`/contacts/${id}`);
   return { status: "saved" };
 }
@@ -77,6 +108,7 @@ export async function updateInteraction(
     return { status: "not-found" };
   }
 
+  revalidatePath("/");
   revalidatePath(`/contacts/${updated.contactId}`);
   return { status: "saved" };
 }
@@ -100,6 +132,7 @@ export async function deleteInteraction(
     return { status: "not-found" };
   }
 
+  revalidatePath("/");
   revalidatePath(`/contacts/${deleted.contactId}`);
   return { status: "deleted" };
 }

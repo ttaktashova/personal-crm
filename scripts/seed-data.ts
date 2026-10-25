@@ -1,6 +1,7 @@
 // Deterministic generator of realistic test contacts (Russian names and texts).
 
 import type { NewContact, NewInteraction } from "../src/db/schema";
+import { CONTACT_FREQUENCIES } from "../src/lib/contact-frequency";
 
 // A contact with its revenge history: one record per dated note, as the notes migration would copy.
 export type SeedContact = {
@@ -341,6 +342,9 @@ function pickCategory(random: Random): Category {
 
 export function generateContacts(count: number, seed = 20261009): SeedContact[] {
   const random = createRandom(seed);
+  // A separate sequence for the reminder frequency, so names, notes and history
+  // stay exactly as they were before contacts had a frequency.
+  const frequencyRandom = createRandom(seed + 1);
   const usedNames = new Set<string>();
   const result: SeedContact[] = [];
 
@@ -400,6 +404,10 @@ export function generateContacts(count: number, seed = 20261009): SeedContact[] 
         phone: chance(random, 0.9) ? makePhone(random) : "",
         email: chance(random, 0.72) ? makeEmail(random, firstName, surname, workDomain) : "",
         notes,
+        // About a quarter, so "Пора мстить" has people with and without history.
+        contactFrequency: chance(frequencyRandom, 0.25)
+          ? pick(frequencyRandom, CONTACT_FREQUENCIES)
+          : null,
         createdAt,
         updatedAt,
       },

@@ -7,6 +7,7 @@ import { ContactAvatar } from "@/components/contact-avatar";
 import { ContactCardActions } from "@/components/contact-card-actions";
 import { InteractionSection } from "@/components/interaction-section";
 import { Skeleton } from "@/components/ui/skeleton";
+import { formatContactFrequency } from "@/lib/contact-frequency";
 import { getContact } from "@/lib/contacts";
 import { formatLongDate } from "@/lib/format";
 import { parseId } from "@/lib/ids";
@@ -84,6 +85,7 @@ async function ContactCard({
               phone: contact.phone,
               email: contact.email,
               notes: contact.notes,
+              contactFrequency: contact.contactFrequency,
             }}
             className={ACTIONS_CLASS}
           />
@@ -105,6 +107,11 @@ async function ContactCard({
         <TextField label="Откуда знакомы" value={contact.howWeMet} />
         <TextField label="Телефон" value={contact.phone} />
         <TextField label="Почта" value={contact.email} />
+        {/* Never empty: no frequency reads "Не задано", a value of its own. */}
+        <TextField
+          label="Как часто припоминать"
+          value={formatContactFrequency(contact.contactFrequency)}
+        />
         <div className={FIELD_ROW_CLASS}>
           <dt className={FIELD_LABEL_CLASS}>Последняя месть</dt>
           <dd className="mt-1 sm:mt-0">
@@ -170,7 +177,8 @@ function ContactCardSkeleton() {
         </div>
       </div>
       <div className={FIELDS_CLASS}>
-        {["w-32", "w-40", "w-48"].map((width) => (
+        {/* "Откуда знакомы", "Телефон", "Почта", "Как часто припоминать". */}
+        {["w-32", "w-40", "w-48", "w-28"].map((width) => (
           <SkeletonFieldRow key={width} width={width} />
         ))}
         {/* "Последняя месть": the record line, then the buttons row. */}
