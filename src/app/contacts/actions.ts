@@ -10,7 +10,7 @@ import {
   toFieldErrors,
   type ContactFieldErrors,
 } from "@/lib/contact-schema";
-import { parseContactId } from "@/lib/contacts";
+import { parseId } from "@/lib/ids";
 
 export type SaveContactResult =
   | { status: "saved"; id: number }
@@ -36,7 +36,7 @@ export async function updateContact(
   id: unknown,
   input: unknown,
 ): Promise<SaveContactResult> {
-  const contactId = parseContactId(id);
+  const contactId = parseId(id);
   if (contactId === null) {
     return { status: "not-found" };
   }
@@ -64,7 +64,7 @@ export async function updateContact(
 export type DeleteContactResult = { status: "deleted" } | { status: "not-found" };
 
 export async function deleteContact(id: unknown): Promise<DeleteContactResult> {
-  const contactId = parseContactId(id);
+  const contactId = parseId(id);
   if (contactId === null) {
     return { status: "not-found" };
   }

@@ -91,8 +91,8 @@ export function DeleteContactButton({
         <AlertDialogHeader>
           <AlertDialogTitle>Удалить контакт?</AlertDialogTitle>
           <AlertDialogDescription>
-            Контакт «{name}» и заметки о нём удалятся насовсем. Вернуть их
-            будет нельзя.
+            Контакт «{name}», заметки и история мести удалятся насовсем.
+            Вернуть их будет нельзя.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>

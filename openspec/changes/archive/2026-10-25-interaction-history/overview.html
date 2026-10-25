@@ -1,0 +1,863 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>История мести — обзор фичи</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=Golos+Text:wght@400;500;600&display=swap">
+<style>
+/* Values copied from src/app/globals.css (the app has one dark theme) */
+:root {
+  color-scheme: dark;
+  --background: #17110f;
+  --foreground: #f6eee3;
+  --card: #221a17;
+  --card-foreground: #e6ddd1;
+  --popover: #2e2522;
+  --popover-foreground: #f6eee3;
+  --primary: #ff4a2e;
+  --primary-hover: #ff6a50;
+  --primary-foreground: #17110f;
+  --secondary: #2e2522;
+  --secondary-foreground: #f6eee3;
+  --muted: #2e2522;
+  --muted-foreground: #b5aa9d;
+  --destructive: #ff4a2e;
+  --border: #3d322c;
+  --border-strong: #4a3f39;
+  --line: #2a211d;
+  --input: #4a3f39;
+  --ring: #f6eee3;
+  --radius: 0.625rem;
+  --radius-xl: 0.75rem;
+  --radius-2xl: 1rem;
+  --radius-card: 1.25rem;
+  --text-caption: 0.8125rem;
+  --text-ui: 0.9375rem;
+  --shadow-cta: 4px 4px 0 var(--foreground);
+  --font-sans: "Golos Text", system-ui, sans-serif;
+  --font-display: "Dela Gothic One", "Golos Text", sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  /* Derived from the tokens above for highlights */
+  --primary-soft: color-mix(in oklch, var(--primary) 16%, var(--card));
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--background);
+  color: var(--card-foreground);
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+a { color: var(--primary); text-underline-offset: 3px; }
+a:hover { color: var(--primary-hover); }
+.page { max-width: 920px; margin: 0 auto; padding: 32px 16px 80px; }
+header.top { display: flex; align-items: center; gap: 10px; padding-bottom: 16px; border-bottom: 1px solid var(--line); }
+header.top .name { font-family: var(--font-display); color: var(--foreground); font-size: 17px; }
+.pill { margin-left: auto; border: 1px solid var(--border-strong); border-radius: 999px; padding: 4px 12px; font-size: var(--text-caption); color: var(--muted-foreground); white-space: nowrap; }
+.logo { width: 30px; height: 30px; flex: none; }
+/* Rules target the shared <symbol>, which lives outside .logo in the DOM */
+#logo .tile { fill: var(--primary); }
+#logo .cat { fill: var(--primary-foreground); stroke: var(--primary-foreground); }
+#logo .eye { fill: var(--primary); }
+h1 { font-family: var(--font-display); font-weight: 400; color: var(--foreground); font-size: 42px; line-height: 1.1; margin: 28px 0 14px; text-wrap: balance; }
+h2 { font-family: var(--font-display); font-weight: 400; color: var(--foreground); font-size: 28px; line-height: 1.15; margin: 64px 0 16px; display: flex; align-items: baseline; gap: 12px; }
+h2 .num { font-size: 18px; color: var(--primary); }
+h3 { font-weight: 600; color: var(--foreground); font-size: 18px; margin: 28px 0 10px; }
+p { margin: 8px 0; }
+b, strong { color: var(--foreground); font-weight: 600; }
+.lead { font-size: 18px; max-width: 700px; }
+.muted { color: var(--muted-foreground); }
+.small { font-size: 14px; }
+code { font-family: var(--font-mono); font-size: 0.86em; background: var(--secondary); color: var(--foreground); padding: 1px 6px; border-radius: 6px; overflow-wrap: anywhere; }
+ul.points, ol.points { padding-left: 20px; margin: 8px 0; }
+ul.points li, ol.points li { margin: 5px 0; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px; }
+.chip { display: inline-flex; align-items: center; gap: 6px; padding: 5px 12px; border-radius: 999px; background: var(--card); border: 1px solid var(--border-strong); font-size: 14px; }
+.chip.accent { color: var(--primary); border-color: var(--primary); }
+.card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius-card); padding: 20px 24px; }
+
+/* Icons (lucide, same set as the app) */
+svg.i { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+
+/* Screen sketches */
+.legend-row { display: flex; flex-wrap: wrap; gap: 8px 20px; font-size: 14px; color: var(--muted-foreground); margin-bottom: 18px; }
+.legend-row span { display: inline-flex; align-items: center; gap: 8px; }
+.sw { display: inline-block; width: 22px; height: 14px; border-radius: 4px; }
+.sw.new { outline: 2px dashed var(--primary); outline-offset: -2px; }
+.sw.changed { outline: 2px dotted var(--muted-foreground); outline-offset: -2px; }
+.mock-links { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 14px; }
+.mock-links a { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; border: 1px solid var(--border-strong); border-radius: 999px; padding: 4px 12px; text-decoration: none; color: var(--foreground); }
+.mock-links a:hover { border-color: var(--primary); }
+.screens { display: grid; gap: 40px; }
+.screen-title { font-family: var(--font-display); color: var(--foreground); font-size: 18px; margin: 0 0 10px; }
+.device { background: var(--background); border: 1px solid var(--border); border-radius: var(--radius-card); padding: 18px 16px; }
+.device.phone { max-width: 360px; }
+.btn { display: inline-flex; align-items: center; gap: 6px; border-radius: var(--radius-xl); font-family: var(--font-display); font-size: 13px; padding: 8px 13px; white-space: nowrap; border: 1px solid transparent; color: var(--foreground); }
+.btn-cta { background: var(--primary); color: var(--primary-foreground); box-shadow: var(--shadow-cta); }
+.btn-outline { border-color: var(--border-strong); }
+.btn-ghost { color: var(--card-foreground); }
+.btn-danger { background: color-mix(in oklch, var(--destructive) 18%, transparent); color: var(--destructive); }
+.btn.focused { outline: 3px solid var(--ring); outline-offset: 3px; }
+.btn.wide { width: 100%; justify-content: center; padding: 11px 13px; }
+.icon-btn { position: relative; display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 10px; border: 1px solid var(--border-strong); color: var(--foreground); flex: none; }
+.icon-btn.danger { color: var(--destructive); border-color: transparent; background: color-mix(in oklch, var(--destructive) 14%, transparent); }
+.icon-btn.plain { border-color: transparent; color: var(--muted-foreground); }
+.icon-btn.lg { width: 44px; height: 44px; border-radius: 12px; }
+.tip { position: absolute; bottom: calc(100% + 8px); left: 50%; transform: translateX(-50%); background: var(--foreground); color: var(--background); font-family: var(--font-sans); font-size: 12px; font-weight: 500; padding: 3px 9px; border-radius: 6px; white-space: nowrap; z-index: 2; }
+.tip::after { content: ""; position: absolute; top: 100%; left: 50%; margin-left: -5px; border: 5px solid transparent; border-top-color: var(--foreground); }
+.avatar { display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; border-radius: 50%; background: var(--secondary); color: var(--secondary-foreground); font-family: var(--font-display); font-size: 12px; flex: none; }
+.avatar.accent { background: var(--primary); color: var(--primary-foreground); }
+.avatar.big { width: 52px; height: 52px; font-size: 16px; }
+.back { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; color: var(--muted-foreground); margin-bottom: 14px; }
+.is-new, .is-changed { position: relative; border-radius: 12px; }
+.is-new { outline: 2px dashed var(--primary); outline-offset: 5px; }
+.is-changed { outline: 2px dotted var(--muted-foreground); outline-offset: 5px; }
+.new-tag { position: absolute; top: -15px; right: 10px; background: var(--primary); color: var(--primary-foreground); font-family: var(--font-sans); font-size: 10.5px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; padding: 2px 8px; border-radius: 999px; z-index: 1; white-space: nowrap; }
+.new-tag.changed { background: var(--secondary); color: var(--foreground); border: 1px solid var(--border-strong); }
+.card-head { display: flex; align-items: center; gap: 14px; margin-bottom: 26px; }
+.card-head.top-align { align-items: flex-start; }
+.card-head .title { display: flex; align-items: center; gap: 8px 12px; flex-wrap: wrap; }
+.card-head h4 { font-family: var(--font-display); font-weight: 400; color: var(--foreground); font-size: 24px; margin: 0; line-height: 1.15; }
+.card-head .revenge { font-size: 15px; color: var(--card-foreground); margin: 0; display: inline-block; padding: 0 4px; }
+.card-head .sub { font-size: 14px; color: var(--muted-foreground); margin: 2px 0 0; display: inline-block; padding: 0 4px; }
+.details { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius-card); padding: 6px 20px; }
+.detail { display: grid; grid-template-columns: 170px 1fr; gap: 12px; padding: 11px 0; border-bottom: 1px solid var(--border); font-size: 14px; }
+.detail:last-child { border-bottom: 0; }
+.detail .k { color: var(--muted-foreground); }
+.detail.stack { grid-template-columns: 1fr; gap: 2px; }
+.detail.new-row { border-bottom: 0; padding: 12px 6px; margin: 8px -6px; }
+.empty { color: var(--muted-foreground); font-style: italic; }
+.notes { white-space: pre-line; color: var(--foreground); }
+.rec { color: var(--foreground); }
+.rec .d { font-weight: 600; font-variant-numeric: tabular-nums; }
+.rec-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 18px; margin-top: 10px; }
+.rec-actions a { color: var(--primary); text-decoration: underline; }
+.stage { position: relative; background: color-mix(in oklch, var(--background) 70%, black); border: 1px solid var(--border); border-radius: var(--radius-card); padding: 28px 16px; }
+.stage .behind { position: absolute; inset: 14px 18px auto; font-size: 13px; color: color-mix(in oklch, var(--muted-foreground) 45%, transparent); }
+.modal { position: relative; background: var(--popover); color: var(--popover-foreground); border: 1px solid var(--border-strong); border-radius: var(--radius-card); padding: 18px 20px 20px; max-width: 540px; margin: 18px auto 0; box-shadow: 0 24px 60px -20px rgba(0, 0, 0, 0.7); }
+.modal.narrow { max-width: 440px; }
+.modal-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 6px; }
+.modal-head .t { font-family: var(--font-display); color: var(--foreground); font-size: 18px; flex: 1; }
+.modal-head .x { color: var(--muted-foreground); }
+.modal-actions { display: flex; gap: 12px; margin-top: 18px; flex-wrap: wrap; }
+.modal-actions.end { justify-content: flex-end; }
+.field { margin: 12px 0; }
+.field .k { font-size: 14px; color: var(--foreground); font-weight: 500; margin-bottom: 5px; }
+.input { display: flex; align-items: center; gap: 8px; border: 1px solid var(--input); border-radius: 10px; padding: 8px 12px; font-size: 14px; min-height: 40px; color: var(--foreground); }
+.input .grow { flex: 1; font-variant-numeric: tabular-nums; }
+.input.area { align-items: flex-start; min-height: 74px; white-space: pre-line; }
+.input .ph { color: var(--muted-foreground); }
+.input.invalid { border-color: var(--destructive); }
+.err { font-size: 13px; color: var(--destructive); margin-top: 5px; }
+.hist { list-style: none; margin: 14px 0 0; padding: 0; }
+.hist li { display: flex; align-items: flex-start; gap: 12px; padding: 12px 0; border-top: 1px solid var(--border-strong); font-size: 14px; }
+.hist .d { font-weight: 600; color: var(--foreground); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.hist .tx { flex: 1; min-width: 0; }
+.hist .ic { display: flex; gap: 6px; }
+.target { margin-top: 12px; padding: 10px 14px; background: var(--card); border: 1px solid var(--border-strong); border-radius: 12px; font-size: 14px; }
+.callouts { margin: 14px 0 0; padding-left: 20px; font-size: 14px; color: var(--muted-foreground); }
+.callouts li { margin: 4px 0; }
+.warn { margin-top: 14px; border: 1px dashed var(--primary); border-radius: 14px; padding: 10px 14px; font-size: 14px; }
+.warn b { color: var(--primary); }
+
+/* Rules */
+.rules { display: grid; gap: 12px; }
+.rule { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 16px 20px; }
+.rule .h { font-weight: 600; color: var(--foreground); margin-bottom: 4px; }
+.example { font-size: 14px; background: var(--secondary); border-left: 3px solid var(--primary); padding: 8px 12px; margin-top: 10px; border-radius: 0 10px 10px 0; }
+.example pre { margin: 6px 0; font-family: var(--font-mono); font-size: 13px; white-space: pre-wrap; color: var(--foreground); }
+
+/* Data model */
+.legend { display: flex; flex-wrap: wrap; gap: 8px 20px; font-size: 14px; color: var(--muted-foreground); margin: 6px 0 12px; }
+.legend span { display: inline-flex; align-items: center; gap: 8px; }
+.lsw { width: 14px; height: 14px; border-radius: 4px; border: 1.5px solid var(--border-strong); background: var(--card); }
+.lsw.new { border-color: var(--primary); background: var(--primary-soft); }
+.schema { background: var(--card); border: 1px solid var(--border-strong); border-radius: var(--radius-card); overflow-x: auto; margin: 10px 0 6px; }
+.schema svg { display: block; width: 100%; min-width: 640px; height: auto; }
+.scroll-hint { display: none; font-size: 13px; color: var(--muted-foreground); }
+.box { fill: var(--secondary); stroke: var(--border-strong); stroke-width: 1.5; }
+.box.new { fill: var(--primary-soft); stroke: var(--primary); }
+.head { fill: var(--border); }
+.head.new { fill: var(--primary); }
+.tname { font: 500 14px var(--font-mono); fill: var(--foreground); }
+.tname.on-accent { fill: var(--primary-foreground); }
+.tru { font: 400 13px var(--font-sans); fill: var(--muted-foreground); }
+.tru.on-accent { fill: var(--primary-foreground); opacity: 0.85; }
+.row { font: 400 13px var(--font-mono); fill: var(--foreground); }
+.row .ru { font-family: var(--font-sans); fill: var(--muted-foreground); }
+.link { fill: none; stroke: var(--muted-foreground); stroke-width: 1.5; }
+.link.new { stroke: var(--primary); stroke-width: 2; }
+.arrowhead { fill: var(--primary); }
+.note { font: 400 13px var(--font-sans); fill: var(--muted-foreground); }
+.note.new { fill: var(--primary); font-weight: 500; }
+.lookup { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; margin-top: 12px; }
+.who { background: var(--card); border: 1px solid var(--border-strong); border-radius: 16px; padding: 18px 20px; display: grid; gap: 10px; min-width: 0; }
+.who h4 { margin: 0; color: var(--foreground); font-size: 16px; font-weight: 600; }
+.who .ask { font-family: var(--font-mono); font-size: 13px; background: var(--secondary); border: 1px solid var(--border); border-radius: 10px; padding: 9px 12px; overflow-wrap: anywhere; }
+.who .ask b { color: var(--primary); font-weight: 500; }
+.result { display: inline-flex; justify-self: start; font-size: 14px; font-weight: 500; border-radius: 999px; padding: 4px 12px; background: var(--secondary); color: var(--foreground); }
+.result.no { background: var(--primary-soft); color: var(--primary); }
+.steps { list-style: none; margin: 12px 0 0; padding: 0; display: grid; gap: 12px; counter-reset: step; }
+.steps li { counter-increment: step; display: grid; grid-template-columns: 40px 1fr; gap: 14px; background: var(--card); border: 1px solid var(--border-strong); border-radius: 16px; padding: 16px 20px; }
+.steps li::before { content: counter(step); font: 400 24px/1 var(--font-display); color: var(--muted-foreground); }
+.steps li.changes { border-color: var(--primary); }
+.steps li.changes::before { color: var(--primary); }
+.steps h4 { margin: 0 0 4px; color: var(--foreground); font-size: 16px; font-weight: 600; }
+.steps p { margin: 4px 0; font-size: 15px; }
+.tagchip { display: inline-block; font-size: 12px; font-weight: 500; color: var(--primary); background: var(--primary-soft); border-radius: 999px; padding: 1px 10px; margin-left: 8px; vertical-align: 2px; }
+.tablewrap { overflow-x: auto; background: var(--card); border: 1px solid var(--border-strong); border-radius: 16px; margin-top: 14px; }
+table.data { border-collapse: collapse; width: 100%; font-size: 15px; font-variant-numeric: tabular-nums; }
+table.data th, table.data td { text-align: left; padding: 11px 16px; border-bottom: 1px solid var(--border); }
+table.data th { font-weight: 500; color: var(--muted-foreground); font-size: 13px; }
+table.data tr:last-child td { border-bottom: 0; }
+table.data td.new { color: var(--primary); font-weight: 500; }
+.callout { border-left: 3px solid var(--primary); padding: 4px 0 4px 18px; margin-top: 18px; }
+.callout h4 { margin: 0 0 4px; color: var(--foreground); font-size: 16px; font-weight: 600; }
+
+/* Checklist */
+.prep { background: var(--secondary); border-radius: 14px; padding: 14px 18px; font-size: 15px; }
+.prep p { margin: 6px 0; }
+.check-group { margin-bottom: 8px; }
+.check { display: flex; gap: 12px; align-items: flex-start; padding: 11px 14px; background: var(--card); border: 1px solid var(--border); border-radius: 12px; margin: 6px 0; cursor: pointer; }
+.check:hover { border-color: var(--border-strong); }
+.check input { margin-top: 4px; accent-color: var(--primary); width: 17px; height: 17px; flex-shrink: 0; }
+.check:has(input:checked) .sc { text-decoration: line-through; text-decoration-color: var(--muted-foreground); }
+.check .sc { font-weight: 600; color: var(--foreground); }
+.check .st { font-size: 14px; }
+.check .arrow { color: var(--primary); font-weight: 700; }
+.hint { display: inline-block; font-size: 12px; font-weight: 500; color: var(--muted-foreground); border: 1px solid var(--border-strong); border-radius: 999px; padding: 0 8px; margin-left: 6px; vertical-align: 1px; }
+
+.two { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; align-items: start; }
+.box-card h3 { margin-top: 0; }
+.box-card h4 { color: var(--foreground); font-size: 15px; font-weight: 600; margin: 16px 0 4px; }
+.qs { display: grid; gap: 12px; }
+footer { margin-top: 64px; font-size: 13px; color: var(--muted-foreground); border-top: 1px solid var(--line); padding-top: 16px; }
+
+@media (max-width: 720px) {
+  h1 { font-size: 30px; }
+  h2 { font-size: 22px; margin-top: 52px; }
+  .two { grid-template-columns: 1fr; }
+  .detail { grid-template-columns: 1fr; gap: 3px; }
+  .card { padding: 18px; }
+  .scroll-hint { display: block; }
+  .hist li { flex-wrap: wrap; }
+}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-pencil" viewBox="0 0 24 24"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></symbol>
+  <symbol id="i-trash" viewBox="0 0 24 24"><path d="M10 11v6"/><path d="M14 11v6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></symbol>
+  <symbol id="i-arrow-left" viewBox="0 0 24 24"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></symbol>
+  <symbol id="i-file" viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/></symbol>
+  <symbol id="i-calendar" viewBox="0 0 24 24"><path d="M8 2v3"/><path d="M16 2v3"/><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/></symbol>
+  <symbol id="logo" viewBox="0 0 32 32"><rect class="tile" width="32" height="32" rx="9"/><path class="cat" d="M8 25 L8 9 L12.5 13 L19.5 13 L24 9 L24 25 Z" stroke-width="2.5" stroke-linejoin="round"/><circle class="eye" cx="13" cy="19" r="1.6"/><circle class="eye" cx="19" cy="19" r="1.6"/></symbol>
+</svg>
+
+<div class="page">
+
+<header class="top">
+  <svg class="logo"><use href="#logo"/></svg>
+  <span class="name">черный список</span>
+  <span class="pill">обзор фичи</span>
+</header>
+
+<h1>История мести</h1>
+<p class="lead">У каждого человека появляется список записей «когда мстили и как». В карточке видно, когда мстили в последний раз и что было, а в окне «История мести» — все записи: их можно добавить, изменить и удалить. Записи из старых заметок переносятся сами, один раз при выкатке.</p>
+<div class="chips">
+  <span class="chip accent">Спроектирована, ещё не сделана</span>
+  <span class="chip">Задачи: 0 из 26</span>
+  <span class="chip">Открытых вопросов нет</span>
+  <span class="chip">Автотестов нет</span>
+  <span class="chip">База: новая таблица и перенос из заметок</span>
+  <span class="chip">Изменение <code>interaction-history</code></span>
+</div>
+
+<!-- 1 -->
+<h2><span class="num">1</span>Коротко</h2>
+<ul class="points">
+  <li>Запись о мести — это дата и пара слов «как отомстил». Текст можно не писать: тогда запишется «Отомстил».</li>
+  <li>Под именем в карточке — «мстили 1 сентября 2026» или «Пока не мстили».</li>
+  <li>В карточке новый раздел «Последняя месть»: последняя запись, ссылка «Вся история» и кнопка «Отомстил».</li>
+  <li>«Вся история» открывает окно со всеми записями. Добавить, изменить и удалить запись можно прямо в нём, второе окно поверх не открывается.</li>
+  <li>При выкатке строки заметок, которые начинаются с даты, копируются в историю. Сами заметки не меняются.</li>
+  <li>Удаление контакта удаляет и его историю мести. Текст подтверждения теперь говорит об этом.</li>
+  <li>Выделена из большой фичи <code>new-features-and-keep-in-touch</code>. Не входят: «Как часто припоминать» и блок «Пора мстить» на главной. Большая фича уже сокращена до них и делается после этой.</li>
+  <li>Статус: <b>спроектирована</b>, код ещё не писали. Отмечено 0 задач из 26. Автотестов (программ, которые сами проходят сценарии) в проекте нет: проверка — сборкой, запросами к базе и руками.</li>
+</ul>
+
+<!-- 2 -->
+<h2><span class="num">2</span>Что появится на экранах</h2>
+<p class="muted small">Наброски, не точные макеты. Имена, даты и тексты — правдоподобные примеры. Точные макеты:</p>
+<div class="mock-links">
+  <a href="../archive/2026-10-25-contact-card-read-mode/mockups/Card.dc.html"><svg class="i"><use href="#i-file"/></svg>Карточка · компьютер</a>
+  <a href="../archive/2026-10-25-contact-card-read-mode/mockups/Card-phone.dc.html"><svg class="i"><use href="#i-file"/></svg>Карточка · телефон</a>
+  <a href="https://claude.ai/artifact/H3fwWd1z31MDDyrMqBkwNW"><svg class="i"><use href="#i-file"/></svg>Все экраны на claude.ai: «Отомстил», «История мести», удаление записи</a>
+</div>
+<p class="muted small">В макете карточки есть строка «Как часто припоминать» — в этой фиче её нет, на набросках тоже.</p>
+<div class="legend-row">
+  <span><i class="sw new"></i>новое</span>
+  <span><i class="sw changed"></i>было, но изменилось</span>
+</div>
+
+<div class="screens">
+
+  <!-- Card, desktop -->
+  <div>
+    <p class="screen-title">Карточка контакта — компьютер</p>
+    <div class="device">
+      <div class="back"><svg class="i"><use href="#i-arrow-left"/></svg>Весь список</div>
+      <div class="card-head">
+        <span class="avatar accent big">АС</span>
+        <div>
+          <div class="title">
+            <h4>Анна Смирнова</h4>
+            <span style="display:inline-flex;gap:6px">
+              <span class="icon-btn"><svg class="i"><use href="#i-pencil"/></svg></span>
+              <span class="icon-btn danger"><svg class="i"><use href="#i-trash"/></svg></span>
+            </span>
+          </div>
+          <div style="margin-top:14px"><span class="revenge is-new"><span class="new-tag">новое</span>мстили 1 сентября 2026</span></div>
+          <div><span class="sub">Добавлен 12 марта 2025 · изменён 20 октября 2026</span></div>
+        </div>
+      </div>
+
+      <div class="details">
+        <div class="detail"><span class="k">Откуда знакомы</span><span>Работали вместе в «Ромашке»</span></div>
+        <div class="detail"><span class="k">Телефон</span><span>+7 900 123-45-67</span></div>
+        <div class="detail"><span class="k">Почта</span><span class="empty">не указано</span></div>
+        <div class="detail new-row is-new"><span class="new-tag">новое</span>
+          <span class="k">Последняя месть</span>
+          <span>
+            <span class="rec"><span class="d">01.09.2026</span> Пили кофе, договорились обсудить договор в мессенджере</span>
+            <span class="rec-actions"><a>Вся история</a><span class="btn btn-outline">Отомстил</span></span>
+          </span>
+        </div>
+        <div class="detail" style="border-top:1px solid var(--border)"><span class="k">Заметки</span><span class="notes">День рождения 12 мая. Любит джаз.
+
+08.10.2025 — Встретились на кофе. Сейчас ищет работу в продукте.</span></div>
+      </div>
+    </div>
+    <ul class="callouts">
+      <li>«мстили …» — дата самой поздней записи, словами, без «г.» и без времени. Стоит над строкой «Добавлен …».</li>
+      <li>Раздел «Последняя месть» — между «Почтой» и «Заметками». У записи в разделе нет карандаша и корзины: изменить и удалить можно только в окне «История мести».</li>
+      <li>«Заметки» остаются как есть: текст в них не трогается.</li>
+    </ul>
+  </div>
+
+  <!-- Card, phone -->
+  <div>
+    <p class="screen-title">Карточка контакта — телефон</p>
+    <div class="device phone">
+      <div class="back"><svg class="i"><use href="#i-arrow-left"/></svg>Весь список</div>
+      <div class="card-head top-align">
+        <span class="avatar accent big">АС</span>
+        <div>
+          <h4>Анна Смирнова</h4>
+          <div style="margin-top:12px"><span class="revenge is-new" style="padding:0 4px"><span class="new-tag">новое</span>мстили 1 сентября 2026</span></div>
+          <div><span class="sub" style="padding:0">Добавлен 12 марта 2025 · изменён 20 октября 2026</span></div>
+          <span style="display:inline-flex;gap:8px;margin-top:12px">
+            <span class="icon-btn lg"><svg class="i"><use href="#i-pencil"/></svg></span>
+            <span class="icon-btn lg danger"><svg class="i"><use href="#i-trash"/></svg></span>
+          </span>
+        </div>
+      </div>
+      <div class="details">
+        <div class="detail stack"><span class="k">Откуда знакомы</span><span>Работали вместе в «Ромашке»</span></div>
+        <div class="detail stack"><span class="k">Телефон</span><span>+7 900 123-45-67</span></div>
+        <div class="detail stack"><span class="k">Почта</span><span class="empty">не указано</span></div>
+        <div class="detail stack new-row is-new"><span class="new-tag">новое</span>
+          <span class="k">Последняя месть</span>
+          <span>
+            <span class="rec"><span class="d">01.09.2026</span> Пили кофе, договорились обсудить договор в мессенджере</span>
+            <span class="rec-actions"><span class="btn btn-outline" style="padding:12px 16px">Отомстил</span><a>Вся история</a></span>
+          </span>
+        </div>
+        <div class="detail stack" style="border-top:1px solid var(--border)"><span class="k">Заметки</span><span class="notes">День рождения 12 мая. Любит джаз.</span></div>
+      </div>
+    </div>
+    <ul class="callouts">
+      <li>На телефоне кнопка «Отомстил» первая и крупнее (высота 44 px, чтобы попадать пальцем), ссылка «Вся история» — справа от неё.</li>
+    </ul>
+  </div>
+
+  <!-- Card, no records -->
+  <div>
+    <p class="screen-title">Карточка, когда мести ещё не было</p>
+    <div class="device">
+      <div class="card-head">
+        <span class="avatar accent big">БК</span>
+        <div>
+          <div class="title"><h4>Борис Котов</h4></div>
+          <div style="margin-top:10px"><span class="revenge is-new"><span class="new-tag">новое</span>Пока не мстили</span></div>
+          <div><span class="sub">Добавлен 3 октября 2026</span></div>
+        </div>
+      </div>
+      <div class="details">
+        <div class="detail"><span class="k">Почта</span><span>boris@example.ru</span></div>
+        <div class="detail new-row is-new"><span class="new-tag">новое</span>
+          <span class="k">Последняя месть</span>
+          <span>
+            <span class="empty">Пока не мстили</span>
+            <span class="rec-actions"><span class="btn btn-outline">Отомстил</span></span>
+          </span>
+        </div>
+        <div class="detail" style="border-top:1px solid var(--border)"><span class="k">Заметки</span><span class="empty">не указано</span></div>
+      </div>
+    </div>
+    <ul class="callouts">
+      <li>Записей нет — и под именем, и в разделе «Пока не мстили». Ссылки «Вся история» нет, кнопка «Отомстил» есть.</li>
+    </ul>
+  </div>
+
+  <!-- Record dialog -->
+  <div>
+    <p class="screen-title">Окно «Отомстил»</p>
+    <div class="stage is-new"><span class="new-tag">новое окно</span>
+      <span class="behind">карточка под затемнением</span>
+      <div class="modal narrow">
+        <div class="modal-head"><span class="t">Отомстил</span><svg class="i x"><use href="#i-x"/></svg></div>
+        <div class="field"><div class="k">Дата</div><div class="input"><span class="grow">25.10.2026</span><svg class="i muted"><use href="#i-calendar"/></svg></div></div>
+        <div class="field"><div class="k">Как отомстил</div><div class="input area"><span class="ph">Отомстил</span></div></div>
+        <div class="modal-actions"><span class="btn btn-cta">Сохранить</span><span class="btn btn-ghost">Отмена</span></div>
+      </div>
+    </div>
+    <ul class="callouts">
+      <li>Открывается кнопкой «Отомстил» в разделе «Последняя месть». В «Дате» уже стоит сегодняшний день по Москве, курсор — в поле «Как отомстил».</li>
+      <li>«Сохранить» — окно закрывается, раздел и строка «мстили …» сразу обновляются, страницу перезагружать не надо.</li>
+      <li>«Отмена», Esc и крестик закрывают окно без записи. Щелчок мимо окна его не закрывает.</li>
+      <li>Ошибки показываются под полем: «Укажите дату», «Дата не может быть позже сегодняшней», «Слишком длинно: не больше 2000 символов». Будущие дни в календаре выбрать нельзя.</li>
+    </ul>
+  </div>
+
+  <!-- History list -->
+  <div>
+    <p class="screen-title">Окно «История мести» — список</p>
+    <div class="stage is-new"><span class="new-tag">новое окно</span>
+      <span class="behind">карточка под затемнением</span>
+      <div class="modal">
+        <div class="modal-head"><span class="t">История мести</span><svg class="i x"><use href="#i-x"/></svg></div>
+        <span class="btn btn-outline" style="margin-top:8px">Отомстил</span>
+        <ul class="hist">
+          <li><span class="d">01.09.2026</span><span class="tx">Пили кофе, договорились обсудить договор в мессенджере</span><span class="ic"><span class="icon-btn"><span class="tip">Изменить запись</span><svg class="i"><use href="#i-pencil"/></svg></span><span class="icon-btn danger"><svg class="i"><use href="#i-trash"/></svg></span></span></li>
+          <li><span class="d">15.08.2026</span><span class="tx">Отомстил</span><span class="ic"><span class="icon-btn"><svg class="i"><use href="#i-pencil"/></svg></span><span class="icon-btn danger"><svg class="i"><use href="#i-trash"/></svg></span></span></li>
+          <li><span class="d">08.10.2025</span><span class="tx">Встретились на кофе. Сейчас ищет работу в продукте.</span><span class="ic"><span class="icon-btn"><svg class="i"><use href="#i-pencil"/></svg></span><span class="icon-btn danger"><svg class="i"><use href="#i-trash"/></svg></span></span></li>
+        </ul>
+      </div>
+    </div>
+    <ul class="callouts">
+      <li>Все записи, сверху самая поздняя по дате. Длинный список прокручивается внутри окна.</li>
+      <li>У каждой записи карандаш с подсказкой «Изменить запись» и корзина с подсказкой «Удалить запись». Экранный диктор (программа, которая читает экран вслух) читает их с датой: «Изменить запись от 01.09.2026».</li>
+      <li>«Отомстил» под заголовком переключает это же окно на форму добавления — такую же, как в окне «Отомстил».</li>
+      <li>На телефоне «Отомстил» во всю ширину, иконки 44×44, текст записи — под датой.</li>
+      <li>Если удалить все записи, окно не закрывается: в нём «Пока не мстили» и кнопка «Отомстил».</li>
+    </ul>
+  </div>
+
+  <!-- History edit -->
+  <div>
+    <p class="screen-title">Окно «История мести» — «Изменить запись»</p>
+    <div class="stage is-new"><span class="new-tag">вид внутри того же окна</span>
+      <span class="behind">карточка под затемнением</span>
+      <div class="modal">
+        <div class="modal-head"><span class="icon-btn plain"><svg class="i"><use href="#i-arrow-left"/></svg></span><span class="t">Изменить запись</span><svg class="i x"><use href="#i-x"/></svg></div>
+        <div class="field"><div class="k">Дата</div><div class="input"><span class="grow">15.08.2026</span><svg class="i muted"><use href="#i-calendar"/></svg></div></div>
+        <div class="field"><div class="k">Как отомстил</div><div class="input area">Пили кофе у метро</div></div>
+        <div class="modal-actions"><span class="btn btn-cta">Сохранить</span><span class="btn btn-ghost">Отмена</span></div>
+      </div>
+    </div>
+    <ul class="callouts">
+      <li>Поля уже заполнены датой и текстом записи. Проверки те же, что при добавлении. Стёр текст — сохранится «Отомстил».</li>
+      <li>«Сохранить», «Отмена» и стрелка «Назад к истории» возвращают окно к списку. Крестик и Esc закрывают окно целиком.</li>
+      <li>Форма добавления в этом окне выглядит так же, только заголовок «Отомстил» и поля как в окне «Отомстил».</li>
+    </ul>
+  </div>
+
+  <!-- History delete -->
+  <div>
+    <p class="screen-title">Окно «История мести» — «Удалить запись?»</p>
+    <div class="stage is-new"><span class="new-tag">вид внутри того же окна</span>
+      <span class="behind">карточка под затемнением</span>
+      <div class="modal">
+        <div class="modal-head"><span class="t">Удалить запись?</span><svg class="i x"><use href="#i-x"/></svg></div>
+        <div class="target"><b>01.09.2026</b> Пили кофе, договорились обсудить договор в мессенджере</div>
+        <p class="small">Запись от 01.09.2026 удалится насовсем.</p>
+        <div class="modal-actions end"><span class="btn btn-outline focused">Отмена</span><span class="btn btn-danger">Удалить</span></div>
+      </div>
+    </div>
+    <ul class="callouts">
+      <li>Отдельного окна поверх не появляется: подтверждение заменяет список в этом же окне.</li>
+      <li>Стрелки «Назад к истории» здесь нет, как в макете: к списку возвращает «Отмена». Крестик закрывает окно целиком.</li>
+      <li>Фокус на «Отмена», чтобы случайный Enter ничего не удалил. «Удалить» удаляет только эту запись, не контакт, и возвращает к списку.</li>
+      <li>На телефоне кнопки друг под другом: сверху «Отмена», ниже «Удалить».</li>
+    </ul>
+  </div>
+
+  <!-- Delete contact -->
+  <div>
+    <p class="screen-title">Вопрос «Удалить контакт?»</p>
+    <div class="stage">
+      <span class="behind">карточка под затемнением</span>
+      <div class="modal narrow">
+        <div class="modal-head"><span class="t">Удалить контакт?</span></div>
+        <p class="small is-changed" style="padding:4px 6px;margin-top:20px"><span class="new-tag changed">новый текст</span>Контакт «Анна Смирнова», заметки и история мести удалятся насовсем. Вернуть их будет нельзя.</p>
+        <div class="modal-actions end"><span class="btn btn-outline focused">Отмена</span><span class="btn btn-danger">Удалить</span></div>
+      </div>
+    </div>
+    <ul class="callouts">
+      <li>Было: «Контакт «…» и заметки о нём удалятся насовсем». Остальное в окне как раньше.</li>
+      <li>После подтверждения база удаляет контакт вместе со всеми его записями о мести.</li>
+    </ul>
+  </div>
+
+</div>
+
+<!-- 3 -->
+<h2><span class="num">3</span>Как это работает</h2>
+<div class="rules">
+  <div class="rule">
+    <div class="h">Запись о мести — дата и текст</div>
+    <p>Дата обязательна и не может быть позже сегодняшнего дня. Текст — до 2000 символов. Пустой текст или одни пробелы сохраняются как «Отомстил».</p>
+    <div class="example">Дата 24.10.2026, поле «Как отомстил» пустое → запись «24.10.2026 Отомстил».</div>
+  </div>
+  <div class="rule">
+    <div class="h">«Сегодня» — по московскому времени</div>
+    <p>Дата по умолчанию в форме и проверка «не позже сегодня» считаются по Москве, даже если компьютер стоит в другом часовом поясе.</p>
+    <div class="example">В Москве 25.10.2026, 00:30, а по всемирному времени (UTC) ещё 24.10 → запись от 25.10.2026 сохраняется.</div>
+  </div>
+  <div class="rule">
+    <div class="h">Какая запись — последняя</div>
+    <p>Последняя — с самой поздней датой, а не та, что добавлена позже. Если у двух записей одна дата, последней считается добавленная позже.</p>
+    <div class="example">Есть запись от 24.10.2026, потом задним числом добавили запись от 01.09.2026 → в разделе «Последняя месть» по-прежнему 24.10.2026.<br>Две записи от 24.10.2026: сначала «Созвонились», потом «Встретились вечером» → в разделе «Встретились вечером».</div>
+  </div>
+  <div class="rule">
+    <div class="h">Карточка обновляется сразу</div>
+    <p>После любого добавления, изменения или удаления записи раздел «Последняя месть» и строка «мстили …» меняются сразу, без перезагрузки страницы.</p>
+    <div class="example">Записи от 01.09.2026 и 24.10.2026. Дату второй меняют на 15.08.2026 → она уезжает в конец истории, под именем «мстили 1 сентября 2026».</div>
+  </div>
+  <div class="rule">
+    <div class="h">Одно окно на всю историю</div>
+    <p>Окно «История мести» не открывает других окон поверх себя. Форма добавления, форма изменения и подтверждение удаления появляются вместо списка. «Сохранить», «Удалить» и «Отмена» возвращают к списку, крестик и Esc закрывают окно целиком.</p>
+    <p>Стрелка «Назад к истории» есть только в формах добавления и изменения. В подтверждении удаления её нет — там к списку возвращает «Отмена».</p>
+  </div>
+  <div class="rule">
+    <div class="h">Записи не меняют дату «изменён»</div>
+    <p>Дата «изменён» под именем — только про поля карточки. Добавление, изменение и удаление записей о мести её не трогают.</p>
+    <div class="example">Под именем «изменён 1 октября 2026». 24 октября добавили и удалили записи → по-прежнему «изменён 1 октября 2026».</div>
+  </div>
+  <div class="rule">
+    <div class="h">Контакт удаляется вместе с историей</div>
+    <p>Записи принадлежат одному контакту. Удалили контакт — удалились и все его записи.</p>
+  </div>
+  <div class="rule">
+    <div class="h">Перенос из заметок: строка с датой начинает запись</div>
+    <p>Один раз при выкатке. Строка заметки, которая начинается с даты вида ДД.ММ.ГГГГ (день и месяц можно одной цифрой), становится записью с этой датой. Следующие строки без даты дописываются к ней же. Тире, дефис или двоеточие после даты в текст не попадают. Если после даты пусто — «Отомстил».</p>
+    <div class="example">Заметки:
+<pre>08.10.2026 — Встретились на кофе.
+Обещал вернуть долг.
+
+15.10.2026 — Дети: сын Миша, 7 лет.</pre>
+→ две записи: «08.10.2026 Встретились на кофе. Обещал вернуть долг.» (обе строки) и «15.10.2026 Дети: сын Миша, 7 лет.»</div>
+  </div>
+  <div class="rule">
+    <div class="h">Несуществующая или будущая дата — обычный текст</div>
+    <div class="example">Строка начинается с «31.02.2026» или с даты позже дня выкатки → записи не начинает, считается продолжением текста.</div>
+  </div>
+  <div class="rule">
+    <div class="h">Текст без дат — только если он про общение</div>
+    <p>Текст до первой строки с датой делится на абзацы по пустым строкам. Абзацы со словами об общении склеиваются в одну запись с датой последнего изменения карточки (по Москве). Остальные абзацы не переносятся.</p>
+    <p class="small muted">Слова (регистр не важен, считается и часть слова): созвон, звонил, встрет, встреч, виделись, поговорил, разговаривал, обсудил, обсуждал, договорил, переписыва, списались, общались, пили кофе, обедали, ужинали, поздравил.</p>
+    <div class="example">Карточка изменена 20.10.2026, заметки: «Созвонились, обсудили переезд.» и «Любит джаз.» → одна запись «20.10.2026 Созвонились, обсудили переезд.»<br>Заметки «День рождения 12 мая. Любит джаз.» → записей нет, под именем «Пока не мстили».</div>
+  </div>
+  <div class="rule">
+    <div class="h">Перенос только копирует и только один раз</div>
+    <p>Заметки, остальные поля и дата «изменён» остаются прежними. Заметки, написанные после выкатки, в историю сами не попадают — запись добавляется кнопкой «Отомстил».</p>
+    <div class="example">После выкатки дописали в заметки «25.10.2026 — Созвонились» → новой записи о мести нет.</div>
+  </div>
+</div>
+
+<!-- 4 -->
+<h2><span class="num">4</span>Модель данных до и после</h2>
+<p>Модель данных — какие таблицы лежат в базе и какие в них поля. Фича добавляет одну новую таблицу. Таблица контактов не меняется.</p>
+
+<h3>Сейчас</h3>
+<p class="scroll-hint">Схему можно листать вбок.</p>
+<div class="schema">
+  <svg viewBox="0 0 700 240" role="img" aria-label="Схема сейчас: одна таблица contacts">
+    <rect class="box" x="30" y="24" width="300" height="196" rx="12"/>
+    <path class="head" d="M42 24 H318 A12 12 0 0 1 330 36 V60 H30 V36 A12 12 0 0 1 42 24 Z"/>
+    <text class="tname" x="46" y="47">contacts</text>
+    <text class="tru" x="314" y="47" text-anchor="end">контакты</text>
+    <text class="row" x="46" y="86">id <tspan class="ru">— номер контакта</tspan></text>
+    <text class="row" x="46" y="110">name <tspan class="ru">— имя</tspan></text>
+    <text class="row" x="46" y="134">how_we_met, phone, email</text>
+    <text class="row" x="46" y="158">notes <tspan class="ru">— заметки, всё подряд</tspan></text>
+    <text class="row" x="46" y="182">created_at, updated_at</text>
+    <text class="row" x="46" y="204"><tspan class="ru">«добавлен» и «изменён»</tspan></text>
+    <text class="note" x="380" y="110">Когда мстили, записано</text>
+    <text class="note" x="380" y="130">только текстом в notes —</text>
+    <text class="note" x="380" y="150">по нему дату надёжно не найти.</text>
+  </svg>
+</div>
+
+<h3>После</h3>
+<div class="legend">
+  <span><i class="lsw new"></i>новое</span>
+  <span><i class="lsw"></i>как было</span>
+</div>
+<p class="scroll-hint">Схему можно листать вбок.</p>
+<div class="schema">
+  <svg viewBox="0 0 700 270" role="img" aria-label="Схема после: contacts без изменений, новая таблица interactions ссылается на contacts через contact_id">
+    <defs>
+      <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" class="arrowhead"/></marker>
+    </defs>
+    <path class="link new" d="M330 82 H392" marker-end="url(#arr)"/>
+    <text class="note new" x="361" y="72" text-anchor="middle">много</text>
+    <text class="note new" x="361" y="104" text-anchor="middle">записей</text>
+
+    <rect class="box" x="30" y="24" width="300" height="196" rx="12"/>
+    <path class="head" d="M42 24 H318 A12 12 0 0 1 330 36 V60 H30 V36 A12 12 0 0 1 42 24 Z"/>
+    <text class="tname" x="46" y="47">contacts</text>
+    <text class="tru" x="314" y="47" text-anchor="end">как было</text>
+    <text class="row" x="46" y="86">id</text>
+    <text class="row" x="46" y="110">name</text>
+    <text class="row" x="46" y="134">how_we_met, phone, email</text>
+    <text class="row" x="46" y="158">notes <tspan class="ru">— не меняется</tspan></text>
+    <text class="row" x="46" y="182">created_at, updated_at</text>
+
+    <rect class="box new" x="396" y="24" width="280" height="172" rx="12"/>
+    <path class="head new" d="M408 24 H664 A12 12 0 0 1 676 36 V60 H396 V36 A12 12 0 0 1 408 24 Z"/>
+    <text class="tname on-accent" x="412" y="47">interactions</text>
+    <text class="tru on-accent" x="660" y="47" text-anchor="end">записи о мести</text>
+    <text class="row" x="412" y="86">contact_id <tspan class="ru">— чья запись</tspan></text>
+    <text class="row" x="412" y="110">id <tspan class="ru">— номер записи</tspan></text>
+    <text class="row" x="412" y="134">occurred_on <tspan class="ru">— дата</tspan></text>
+    <text class="row" x="412" y="158">summary <tspan class="ru">— как отомстил</tspan></text>
+    <text class="row" x="412" y="182">created_at <tspan class="ru">— когда внесли</tspan></text>
+
+    <text class="note" x="412" y="226">Удалили контакт — база сама удаляет его записи.</text>
+    <text class="note" x="412" y="246">Последняя месть нигде не хранится отдельно:</text>
+    <text class="note" x="412" y="264">её каждый раз берут из записей.</text>
+  </svg>
+</div>
+<ul class="points">
+  <li><b>interactions</b> — новая таблица: одна строка = одна запись о мести. <code>contact_id</code> — номер контакта, к которому она относится.</li>
+  <li><b>occurred_on</b> — только дата, без времени. Поэтому дата не может «съехать» на день из-за часовых поясов.</li>
+  <li><b>summary</b> хранит ровно то, что видно на экране, включая «Отомстил» для пустого текста.</li>
+  <li>«мстили …» и «Последняя месть» каждый раз вычисляются из записей: самая поздняя дата, при равной — запись с большим номером (добавлена позже). Поэтому отдельная дата в контакте не может разойтись с историей.</li>
+  <li>В <b>contacts</b> ничего не добавляется и не меняется.</li>
+</ul>
+
+<h3>Как карточка находит свои записи и не видит чужие</h3>
+<p>Каждая запись помнит номер своего контакта. Карточка просит у базы только записи со своим номером.</p>
+<div class="lookup">
+  <div class="who">
+    <h4>Карточка Анны (контакт №15)</h4>
+    <div class="ask">найди записи, где <b>contact_id = 15</b>, сначала поздние</div>
+    <span class="result">Нашлись 3 записи Анны</span>
+  </div>
+  <div class="who">
+    <h4>Карточка Бориса (контакт №16)</h4>
+    <div class="ask">найди записи, где <b>contact_id = 16</b>, сначала поздние</div>
+    <span class="result no">Не нашлось ни одной: «Пока не мстили»</span>
+  </div>
+</div>
+<p class="small muted">Записи Анны в карточке Бориса не появятся: у них другой номер контакта.</p>
+
+<h3>Миграции</h3>
+<p>Миграция — скрипт, который меняет устройство базы. Их две, и при выкатке они выполняются вместе: если любая упадёт, не применится ни одна, база останется прежней, а новая версия приложения не запустится.</p>
+<ol class="steps">
+  <li>
+    <div>
+      <h4><code>0001_create_interactions</code> — новая таблица</h4>
+      <p>Создаёт пустую таблицу записей о мести, связь с контактами и индекс (оглавление, по которому база быстро находит записи одного контакта). Существующие данные не трогает.</p>
+    </div>
+  </li>
+  <li class="changes">
+    <div>
+      <h4><code>0002_copy_interactions_from_notes</code> — перенос из заметок <span class="tagchip">добавляет данные</span></h4>
+      <p>Читает заметки каждого контакта и по правилам из раздела 3 создаёт записи о мести. В таблицу контактов ничего не пишет: заметки, поля и дата «изменён» остаются прежними. В коде нет данных конкретных людей, только общие правила.</p>
+    </div>
+  </li>
+</ol>
+
+<h3>Что станет с данными, которые уже есть</h3>
+<div class="tablewrap">
+  <table class="data">
+    <thead><tr><th>Что в базе</th><th>До выкатки</th><th>После выкатки</th></tr></thead>
+    <tbody>
+      <tr><td>Контакты</td><td>1000</td><td>1000, не трогались</td></tr>
+      <tr><td>Заметки</td><td>как есть</td><td>те же, слово в слово</td></tr>
+      <tr><td>Дата «изменён»</td><td>как есть</td><td>та же</td></tr>
+      <tr><td>Записи о мести</td><td>таблицы нет</td><td class="new">около 1700: по одной на строку с датой, плюс текст без дат про общение</td></tr>
+    </tbody>
+  </table>
+</div>
+<p class="small muted">Числа для примера. Перед PR агент сверит на локальной базе, что число записей из датированных строк равно числу таких строк, а таблица контактов не изменилась (задачи 1.3–1.5).</p>
+
+<div class="callout">
+  <h4>Как откатиться</h4>
+  <p>Только вручную, по README. Миграции только добавляют, поэтому прошлая версия приложения работает с новой базой и просто не видит историю. Записи при этом остаются в базе и снова появятся, если выкатить новую версию. Повторно перенос не запустится: миграция уже отмечена как выполненная. Если перенос дал не тот результат, лишние записи удаляются в окне истории или отдельной миграцией по вашему согласию.</p>
+</div>
+
+<!-- 5 -->
+<h2><span class="num">5</span>Как проверить руками</h2>
+<div class="prep">
+  <p><b>Подготовка.</b> Запустите приложение локально: <code>pnpm db:migrate</code>, потом <code>pnpm dev</code> (см. README). Миграция перенесёт записи из заметок тестовых контактов.</p>
+  <p>Для «сервер недоступен» остановите <code>pnpm dev</code> при открытой странице. Для «удалили в другой вкладке» откройте ту же карточку во второй вкладке. Удаление контакта — только на тестовом контакте.</p>
+  <p>Галочки на этой странице только для удобства и не сохраняются.</p>
+</div>
+
+<div class="check-group">
+  <h3>Строка «мстили …» и поля карточки</h3>
+  <label class="check"><input type="checkbox"><div><div class="sc">Есть записи</div><div class="st">Открыть контакт с записями от 12.09.2026 и 24.10.2026 <span class="arrow">→</span> под именем «мстили 24 октября 2026».</div></div></label>
+  <label class="check"><input type="checkbox"><div><div class="sc">Записей нет</div><div class="st">Открыть контакт без записей <span class="arrow">→</span> под именем «Пока не мстили».</div></div></label>
+  <label class="check"><input type="checkbox"><div><div class="sc">Порядок полей</div><div class="st">Открыть любую карточку <span class="arrow">→</span> «Откуда знакомы», «Телефон», «Почта», «Последняя месть», «Заметки»; отдельного поля «Имя» нет.</div></div></label>
+  <label class="check"><input type="checkbox"><div><div class="sc">Пустые поля и заметки</div><div class="st">Контакт без почты и без заметок <span class="arrow">→</span> в обоих полях «не указано».</div></div></label>
+  <label class="check"><input type="checkbox"><div><div class="sc">Многострочные заметки</div><div class="st">Контакт с тремя абзацами заметок <span class="arrow">→</span> показаны тремя абзацами.</div></div></label>
+</div>
+
+<div class="check-group">
+  <h3>Раздел «Последняя месть»</h3>
+  <label class="check"><input type="checkbox"><div><div class="sc">Последняя по дате, а не по добавлению</div><div class="st">У контакта есть запись от 24.10.2026 → добавить запись от 01.09.2026 <span class="arrow">→</span> в разделе по-прежнему 24.10.2026.</div></div></label>
+  <label class="check"><input type="checkbox"><div><div class="sc">Две записи за один день</div><div class="st">Добавить «Созвонились» от 24.10.2026, потом «Встретились вечером» от той же даты <span class="arrow">→</span> в разделе «24.10.2026 Встретились вечером».</div></div></label>
+  <label class="check"><input type="checkbox"><div><div class="sc">Многострочный текст</div><div class="st">Открыть контакт, у которого последняя запись из нескольких строк <span class="arrow">→</span> в разделе строки не слиплись.</div></div></label>
+  <label class="check"><input type="checkbox"><div><div class="sc">Пустой раздел</div><div class="st">Контакт без записей <span class="arrow">→</span> «Пока не мстили», кнопка «Отомстил», ссылки «Вся история» нет.</div></div></label>
+</div>
+
+<div class="check-group">
+  <h3>Окно «Отомстил»</h3>
+  <label class="check"><input type="checkbox"><div><div class="sc">Запись с текстом</div><div class="st">«Отомстил» → дата 24.10.2026, текст «Пили кофе, договорились обсудить договор в мессенджере» → «Сохранить» <span class="arrow">→</span> окно закрылось, в разделе эта запись, под именем «мстили 24 октября 2026».</div></div></label>
+  <label class="check"><input type="checkbox"><div><div class="sc">Дата по умолчанию</div><div class="st">Нажать «Отомстил» <span class="arrow">→</span> в «Дате» сегодняшний день, «Как отомстил» пустое с серой подсказкой «Отомстил».</div></div></label>
+  <label class="check"><input type="checkbox"><div><div class="sc">Отмена</div><div class="st">Ввести текст → «Отмена» (а в другой раз — Esc и крестик) <span class="arrow">→</span> окно закрылось, новой записи нет.</div></div></label>
+  <label class="check"><input type="checkbox"><div><div class="sc">Пустой текст</div><div class="st">Сохранить с пустым «Как отомстил» <span class="arrow">→</span> запись «… Отомстил».</div></div></label>
+  <label class="check"><input type="checkbox"><div><div class="sc">Только пробелы</div><div class="st">Ввести в «Как отомстил» одни пробелы → «Сохранить» <span class="arrow">→</span> запись с текстом «Отомстил».</div></div></label>
+  <label class="check"><input type="checkbox"><div><div class="sc">Дата не указана</div><div class="st">Очистить дату → «Сохранить» <span class="arrow">→</span> окно открыто, под датой «Укажите дату», записи нет.</div></div></label>
+  <label class="check"><input type="checkbox"><div><div class="sc">Дата в будущем</div><div class="st">Ввести завтрашнюю дату с клавиатуры → «Сохранить» <span class="arrow">→</span> «Дата не может быть позже сегодняшней», записи нет.</div></div></label>
+  <label class="check"><input type="checkbox"><div><div class="sc">Сегодня по Москве<span class="hint">ночью или агентом</span></div><div class="st">Между 00:00 и 03:00 по Москве сохранить запись с сегодняшней московской датой <span class="arrow">→</span> сохраняется. Днём это проверяет агент (задача 2.1).</div></div></label>
+  <label class="check"><input type="checkbox"><div><div class="sc">Слишком длинный текст</div><div class="st">Вставить больше 2000 символов → «Сохранить» <span class="arrow">→</span> «Слишком длинно: не больше 2000 символов», записи нет.</div></div></label>
+  <label class="check"><input type="checkbox"><div><div class="sc">Сервер недоступен</div><div class="st">Остановить <code>pnpm dev</code> → заполнить окно → «Сохранить» <span class="arrow">→</span> сообщение об ошибке, окно открыто с введёнными данными.</div></div></label>
+  <label class="check"><input type="checkbox"><div><div class="sc">Контакт уже удалили<span class="hint">тестовый контакт</span></div><div class="st">Открыть окно «Отомстил» → во второй вкладке удалить контакт → в первой «Сохранить» <span class="arrow">→</span> «Этот контакт не найден. Возможно, его удалили.»</div></div></label>
+  <label class="check"><input type="checkbox"><div><div class="sc">Видно в другом браузере</div><div class="st">Добавить запись → открыть ту же карточку в другом браузере <span class="arrow">→</span> запись там есть.</div></div></label>
+  <label class="check"><input type="checkbox"><div><div class="sc">Несколько записей у одного контакта</div><div class="st">Добавить контакту три записи <span class="arrow">→</span> все три в его истории, у соседнего контакта их нет.</div></div></label>
+</div>
+
+<div class="check-group">
+  <h3>Окно «История мести»</h3>
+  <label class="check"><input type="checkbox"><div><div class="sc">Просмотр всей истории</div><div class="st">Контакт с пятью записями → «Вся история» <span class="arrow">→</span> пять записей, сверху самая поздняя по дате.</div></div></label>
+  <label class="check"><input type="checkbox"><div><div class="sc">Добавление из окна истории</div><div class="st">«Отомстил» в окне → заполнить → «Сохранить» <span class="arrow">→</span> снова список, запись на своём месте по дате, раздел и «мстили …» в карточке обновились.</div></div></label>
+  <label class="check"><input type="checkbox"><div><div class="sc">Отмена добавления</div><div class="st">«Отомстил» в окне → «Отмена» <span class="arrow">→</span> снова список, новой записи нет.</div></div></label>
+  <label class="check"><input type="checkbox"><div><div class="sc">Одно окно</div><div class="st">По очереди нажать «Отомстил», карандаш и корзину <span class="arrow">→</span> каждый раз меняется содержимое того же окна, затемнение одно, второго окна нет.</div></div></label>
+  <label class="check"><input type="checkbox"><div><div class="sc">Назад к истории</div><div class="st">Открыть форму добавления или изменения → стрелка «назад» <span class="arrow">→</span> снова список, ничего не изменилось.</div></div></label>
+  <label class="check"><input type="checkbox"><div><div class="sc">Подтверждение без стрелки</div><div class="st">Нажать корзину у записи <span class="arrow">→</span> в «Удалить запись?» есть крестик, «Отмена» и «Удалить», стрелки «Назад к истории» нет.</div></div></label>
+  <label class="check"><input type="checkbox"><div><div class="sc">Закрытие крестиком</div><div class="st">Открыть форму, ввести текст → крестик (в другой раз Esc) <span class="arrow">→</span> окно закрылось целиком, запись не сохранилась.</div></div></label>
+  <label class="check"><input type="checkbox"><div><div class="sc">Удалили все записи</div><div class="st">Удалить в окне последнюю оставшуюся запись <span class="arrow">→</span> окно открыто, в нём «Пока не мстили» и «Отомстил».</div></div></label>
+</div>
+
+<div class="check-group">
+  <h3>Изменение записи</h3>
+  <label class="check"><input type="checkbox"><div><div class="sc">Изменение текста</div><div class="st">Карандаш у «24.10.2026 Отомстил» → текст «Пили кофе у метро» → «Сохранить» <span class="arrow">→</span> в списке и в разделе «24.10.2026 Пили кофе у метро».</div></div></label>
+  <label class="check"><input type="checkbox"><div><div class="sc">Изменение даты</div><div class="st">Записи от 01.09.2026 и 24.10.2026 → у второй дату на 15.08.2026 <span class="arrow">→</span> она в конце списка, в разделе 01.09.2026, под именем «мстили 1 сентября 2026».</div></div></label>
+  <label class="check"><input type="checkbox"><div><div class="sc">Отмена изменения</div><div class="st">Карандаш → поменять текст → «Отмена» <span class="arrow">→</span> запись прежняя.</div></div></label>
+  <label class="check"><input type="checkbox"><div><div class="sc">Дата в будущем</div><div class="st">Поменять дату на завтрашнюю → «Сохранить» <span class="arrow">→</span> «Дата не может быть позже сегодняшней», запись прежняя.</div></div></label>
+  <label class="check"><input type="checkbox"><div><div class="sc">Пустой текст</div><div class="st">Стереть текст записи → «Сохранить» <span class="arrow">→</span> текст стал «Отомстил».</div></div></label>
+  <label class="check"><input type="checkbox"><div><div class="sc">Запись уже удалили</div><div class="st">Открыть «Изменить запись» → во второй вкладке удалить эту запись → в первой «Сохранить» <span class="arrow">→</span> «Эта запись не найдена. Возможно, её удалили.», список обновился.</div></div></label>
+</div>
+
+<div class="check-group">
+  <h3>Удаление записи</h3>
+  <label class="check"><input type="checkbox"><div><div class="sc">Подтверждение</div><div class="st">Корзина у записи от 24.10.2026 <span class="arrow">→</span> в том же окне «Удалить запись?», сама запись, «Запись от 24.10.2026 удалится насовсем.», фокус на «Отмена».</div></div></label>
+  <label class="check"><input type="checkbox"><div><div class="sc">Отмена удаления</div><div class="st">На подтверждении «Отмена» <span class="arrow">→</span> список, запись на месте.</div></div></label>
+  <label class="check"><input type="checkbox"><div><div class="sc">Удаление последней записи</div><div class="st">Записи от 01.09.2026 и 24.10.2026 → удалить вторую <span class="arrow">→</span> одна запись, в разделе 01.09.2026, «мстили 1 сентября 2026», контакт на месте.</div></div></label>
+  <label class="check"><input type="checkbox"><div><div class="sc">Удаление единственной записи</div><div class="st">Удалить единственную запись <span class="arrow">→</span> в разделе и под именем «Пока не мстили».</div></div></label>
+  <label class="check"><input type="checkbox"><div><div class="sc">Запись уже удалили</div><div class="st">Открыть подтверждение → во второй вкладке удалить эту запись → в первой «Удалить» <span class="arrow">→</span> «Эта запись не найдена. Возможно, её удалили.», список обновился.</div></div></label>
+</div>
+
+<div class="check-group">
+  <h3>Дата «изменён»</h3>
+  <label class="check"><input type="checkbox"><div><div class="sc">Дата прежняя</div><div class="st">Контакт с «изменён …» в прошлом → добавить, изменить и удалить записи <span class="arrow">→</span> строка «Добавлен … · изменён …» та же.</div></div></label>
+  <label class="check"><input type="checkbox"><div><div class="sc">Карточку не меняли</div><div class="st">Новый контакт без правок → добавить запись <span class="arrow">→</span> под именем только «Добавлен …».</div></div></label>
+</div>
+
+<div class="check-group">
+  <h3>Удаление контакта</h3>
+  <label class="check"><input type="checkbox"><div><div class="sc">Подтверждение удаления<span class="hint">тестовый контакт</span></div><div class="st">Корзина у имени <span class="arrow">→</span> «Удалить контакт?», в тексте — контакт, заметки и история мести, фокус на «Отмена».</div></div></label>
+  <label class="check"><input type="checkbox"><div><div class="sc">Отмена удаления</div><div class="st">«Отмена» <span class="arrow">→</span> контакт и его записи на месте.</div></div></label>
+  <label class="check"><input type="checkbox"><div><div class="sc">Удаление<span class="hint">тестовый контакт</span></div><div class="st">Подтвердить удаление контакта с записями <span class="arrow">→</span> главная без него. Что записи удалены из базы, проверит агент запросом к базе (задача 4.4).</div></div></label>
+</div>
+
+<div class="check-group">
+  <h3>Перенос из заметок</h3>
+  <label class="check"><input type="checkbox"><div><div class="sc">Заметки с датами</div><div class="st">Открыть контакт с заметками «ДД.ММ.ГГГГ — текст» → «Вся история» <span class="arrow">→</span> по записи на каждую строку с датой, тире в текст не попало.</div></div></label>
+  <label class="check"><input type="checkbox"><div><div class="sc">Строка-продолжение<span class="hint">агент</span></div><div class="st">Строка без даты после датированной <span class="arrow">→</span> дописана в ту же запись. В тестовых данных таких строк нет: проверит агент во временной базе (задача 1.6), руками — на своих настоящих заметках после выкатки.</div></div></label>
+  <label class="check"><input type="checkbox"><div><div class="sc">Несуществующая или будущая дата<span class="hint">агент</span></div><div class="st">«31.02.2026 …» или дата позже выкатки <span class="arrow">→</span> записи не начинает. Проверит агент во временной базе.</div></div></label>
+  <label class="check"><input type="checkbox"><div><div class="sc">Текст без даты про общение<span class="hint">агент</span></div><div class="st">«Созвонились, обсудили переезд.» и «Любит джаз.» в карточке, изменённой 20.10.2026 <span class="arrow">→</span> одна запись «20.10.2026 Созвонились, обсудили переезд.»</div></div></label>
+  <label class="check"><input type="checkbox"><div><div class="sc">Текст без даты не про общение<span class="hint">агент</span></div><div class="st">Только «День рождения 12 мая. Любит джаз.» <span class="arrow">→</span> записей нет.</div></div></label>
+  <label class="check"><input type="checkbox"><div><div class="sc">Пустые заметки</div><div class="st">Контакт без заметок <span class="arrow">→</span> записей нет, под именем «Пока не мстили».</div></div></label>
+  <label class="check"><input type="checkbox"><div><div class="sc">Заметки на месте</div><div class="st">Контакт с перенесёнными записями <span class="arrow">→</span> заметки те же, что до выкатки, дата «изменён» не поменялась.</div></div></label>
+  <label class="check"><input type="checkbox"><div><div class="sc">Новая заметка с датой</div><div class="st">Дописать в заметки «25.10.2026 — Созвонились» → «Сохранить» <span class="arrow">→</span> новой записи о мести нет.</div></div></label>
+</div>
+
+<!-- 6 -->
+<h2><span class="num">6</span>Что агент решил сам</h2>
+<div class="two">
+  <div class="card box-card">
+    <h3>Продуктовые — стоит просмотреть</h3>
+    <h4>Взято из <code>new-features-and-keep-in-touch</code> — вы подтвердили 25.10.2026</h4>
+    <ul class="points small">
+      <li>Записей нет — «Пока не мстили» под именем и в разделе.</li>
+      <li>Дата записи не позже сегодня, «сегодня» — по Москве.</li>
+      <li>Удаление записи спрашивает подтверждение внутри окна «История мести».</li>
+      <li>Записи не меняют дату «изменён» у контакта.</li>
+      <li>Изменить запись можно только в окне истории, в разделе карточки карандаша нет.</li>
+      <li>Названия: «Последняя месть», «Вся история», «История мести», «Отомстил», «Дата», подсказка «Отомстил».</li>
+      <li>Правила переноса из заметок и список слов про общение.</li>
+    </ul>
+    <h4>Ваше решение по макету, 25.10.2026</h4>
+    <ul class="points small">
+      <li>Стрелка «Назад к истории» — только в формах окна истории, в подтверждении удаления её нет.</li>
+    </ul>
+    <h4>Решил сам при планировании</h4>
+    <ul class="points small">
+      <li>Новый текст подтверждения удаления контакта: «контакт, заметки и история мести удалятся насовсем».</li>
+      <li>Запись удалили в другой вкладке и удаляют снова — «Эта запись не найдена. Возможно, её удалили.»</li>
+      <li>Контакт удалили, а ему добавляют запись — «Этот контакт не найден. Возможно, его удалили.»</li>
+      <li>Удалили в окне все записи — окно остаётся открытым с «Пока не мстили».</li>
+      <li>Как в окнах контакта: «Отмена», Esc и крестик закрывают окно «Отомстил», щелчок мимо — нет; при ошибке сервера окно остаётся с введёнными данными.</li>
+      <li>В календаре нельзя выбрать будущий день.</li>
+    </ul>
+  </div>
+  <div class="card box-card">
+    <h3>Технические — на экраны не влияют</h3>
+    <ul class="points small">
+      <li>История — отдельная таблица, а не разбор текста заметок при каждом показе.</li>
+      <li>Дата последней мести не хранится в контакте, а берётся из записей: нечему расходиться.</li>
+      <li>Дата записи хранится без времени, поэтому не съезжает из-за часовых поясов.</li>
+      <li>«Сегодня по Москве» считает одна функция и в браузере, и на сервере.</li>
+      <li>Записи удаляет сама база вместе с контактом — код удаления контакта не меняется.</li>
+      <li>Перенос из заметок — миграция на языке базы (SQL): идёт в обычной выкатке, один раз и вместе с созданием таблицы. Отдельный шаг выкатки не нужен.</li>
+      <li>Сравнение слов про общение без учёта регистра работает одинаково при любых настройках языка в базе.</li>
+      <li>Новых библиотек и компонентов нет. Поле даты — обычное поле браузера: готовый календарь потянул бы новую библиотеку.</li>
+      <li>Генератор тестовых данных <code>pnpm db:seed</code> начнёт создавать записи о мести к датированным заметкам: на свежей базе перенос срабатывает раньше, чем появляются контакты.</li>
+      <li>Карточка и все записи контакта грузятся с сервера одновременно; записей у человека десятки, поэтому грузятся все сразу.</li>
+    </ul>
+  </div>
+</div>
+
+<!-- 7 -->
+<h2><span class="num">7</span>Что осталось неясным</h2>
+<div class="card">
+  <p><b>Открытых вопросов нет.</b></p>
+  <p class="small">Все три прошлых вопроса закрыты 25.10.2026: стрелку убрали из подтверждения удаления, решения из большой фичи вы подтвердили, а сама <code>new-features-and-keep-in-touch</code> уже сокращена до «Как часто припоминать» и «Пора мстить». Её нужно вливать после этой фичи: ей нужна таблица записей о мести.</p>
+</div>
+
+<footer>Собрано по <code>openspec/changes/interaction-history/</code> (версия от 25.10.2026, после <code>/opsx:update</code>) и макету на claude.ai. Код ещё не писали. Страница только показывает, ничего не меняет.</footer>
+</div>
+</body>
+</html>

@@ -4,7 +4,8 @@ import { Suspense } from "react";
 import { ContactDirectory } from "@/components/contact-directory";
 import { NewContactDialog } from "@/components/new-contact-dialog";
 import { Skeleton } from "@/components/ui/skeleton";
-import { listContacts, parseContactId } from "@/lib/contacts";
+import { listContacts } from "@/lib/contacts";
+import { parseId } from "@/lib/ids";
 
 // The layout's title template skips pages of its own segment, so the suffix is spelled out here.
 export const metadata: Metadata = {
@@ -36,7 +37,7 @@ async function Directory({
   return (
     <ContactDirectory
       contacts={contacts}
-      highlightId={parseContactId(added)}
+      highlightId={parseId(added)}
     />
   );
 }
