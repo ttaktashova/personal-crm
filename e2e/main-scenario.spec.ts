@@ -1,5 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 
+import { cardField } from "./contact-card";
 import { addContacts, resetDatabase } from "./database";
 
 // The main scenario of specs/01-продуктовая-идея.md, in a real browser against the app
@@ -39,14 +40,6 @@ async function expectList(page: Page, names: string[]) {
   const rows = listRows(page);
   await expect(rows).toHaveCount(names.length);
   await expect(rows).toContainText(names);
-}
-
-// The value of a contact card field, found by its label.
-function cardField(page: Page, label: string) {
-  return page
-    .locator("dl > div")
-    .filter({ has: page.locator("dt").getByText(label, { exact: true }) })
-    .locator("dd");
 }
 
 test.beforeEach(async () => {
@@ -115,6 +108,8 @@ test("main scenario: open the list, add a person, find them, add a note", async 
     await listRows(page).getByRole("link").click();
     await expect(page.getByRole("heading", { level: 1 })).toHaveText(NEW_PERSON);
     await expect(cardField(page, "Заметки")).toHaveText(FIRST_NOTE);
+    // The field was left as it was in the window.
+    await expect(cardField(page, "Как часто припоминать")).toHaveText("Не задано");
 
     await page.getByRole("button", { name: "Редактировать" }).click();
     const dialog = page.getByRole("dialog", { name: "Редактировать контакт" });

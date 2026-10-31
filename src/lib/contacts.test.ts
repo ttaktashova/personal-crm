@@ -10,6 +10,7 @@ import { resetDatabase } from "@/test/reset-database";
 import type { ContactInput } from "./contact-schema";
 import { getContact, insertContact, listContactsPage, updateContactById } from "./contacts";
 import { deleteGroup, listContactGroups, listGroups } from "./groups";
+import { listDueContacts } from "./keep-in-touch";
 import { toSearchWords } from "./search";
 
 function contactInput(overrides: Partial<ContactInput> = {}): ContactInput {
@@ -216,6 +217,32 @@ describe("saving a contact with groups", () => {
       expect(await groupNamesOf(anna.id)).toEqual(["Друзья"]);
       expect(await allGroupNames()).toEqual(["Друзья"]);
     });
+  });
+});
+
+describe("saving the frequency «Как часто припоминать»", () => {
+  beforeEach(resetDatabase);
+
+  it("saves a new contact without a frequency as «Не задано»", async () => {
+    const { id } = await insertContact(contactInput());
+
+    expect((await getContact(id))?.contactFrequency).toBeNull();
+  });
+
+  it("saves the frequency chosen for a new contact", async () => {
+    const { id } = await insertContact(contactInput({ contactFrequency: "month" }));
+
+    expect((await getContact(id))?.contactFrequency).toBe("month");
+  });
+
+  it("takes a contact out of «Пора мстить» when the frequency goes back to «Не задано»", async () => {
+    const anna = await addContact({ name: "Анна Смирнова", contactFrequency: "month" });
+    expect(await listDueContacts("2026-10-24", null)).toHaveLength(1);
+
+    await updateContactById(anna.id, contactInput({ contactFrequency: null }));
+
+    expect((await getContact(anna.id))?.contactFrequency).toBeNull();
+    expect(await listDueContacts("2026-10-24", null)).toEqual([]);
   });
 });
 
