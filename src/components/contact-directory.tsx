@@ -2,16 +2,19 @@
 
 import { ChevronRightIcon, SearchIcon, XIcon } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
-  useDeferredValue,
   useEffect,
-  useMemo,
+  useEffectEvent,
   useRef,
   useState,
+  useTransition,
 } from "react";
 
 import { CatConfused } from "@/components/cat-confused";
 import { ContactAvatar } from "@/components/contact-avatar";
+import { ContactPagination } from "@/components/contact-pagination";
+import { PageSizePicker } from "@/components/page-size-picker";
 import { Badge } from "@/components/ui/badge";
 import {
   InputGroup,
@@ -21,8 +24,12 @@ import {
 } from "@/components/ui/input-group";
 import type { ContactListItem } from "@/lib/contacts";
 import { pluralize } from "@/lib/format";
-import { matchesAllWords, normalizeForSearch, toSearchWords } from "@/lib/search";
+import { rememberListHref } from "@/lib/list-return";
+import { buildListHref, type PageSize } from "@/lib/pagination";
 import { cn } from "@/lib/utils";
+
+// The URL follows the search field this long after the last key.
+const SEARCH_DELAY_MS = 300;
 
 type LetterGroup = { letter: string; contacts: ContactListItem[] };
 
@@ -33,6 +40,7 @@ function getGroupLetter(name: string): string {
 }
 
 // Contacts arrive sorted by name, so each letter is one contiguous run.
+// A page that starts in the middle of a letter starts with that letter's heading.
 function groupByLetter(contacts: ContactListItem[]): LetterGroup[] {
   const groups: LetterGroup[] = [];
   for (const contact of contacts) {
@@ -47,25 +55,54 @@ function groupByLetter(contacts: ContactListItem[]): LetterGroup[] {
   return groups;
 }
 
-// The whole list comes from the server; search filters it right on the page,
-// so results appear as you type.
+// One page of the list comes from the server; the page, the search and the size
+// live in the URL (?page=, ?q=, ?size=). The field shows letters as they are typed,
+// and the URL follows a moment later, so the server searches all contacts.
 export function ContactDirectory({
   contacts,
+  totalCount,
+  matchedCount,
+  page,
+  pageCount,
+  pageSize,
+  query,
   highlightId,
 }: {
   contacts: ContactListItem[];
+  totalCount: number;
+  matchedCount: number;
+  page: number;
+  pageCount: number;
+  pageSize: PageSize;
+  query: string;
   highlightId: number | null;
 }) {
-  const [query, setQuery] = useState("");
-  const deferredQuery = useDeferredValue(query);
+  const router = useRouter();
+  const [isPending, startTransition] = useTransition();
+  const topRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // A just-added contact must be visible, so drop any search left from before.
-  const [shownHighlightId, setShownHighlightId] = useState(highlightId);
-  if (highlightId !== shownHighlightId) {
-    setShownHighlightId(highlightId);
-    if (highlightId !== null) setQuery("");
+  // What the field shows, and the search last sent to the URL.
+  const [inputValue, setInputValue] = useState(query);
+  const [sentQuery, setSentQuery] = useState(query);
+
+  // The search in the URL changed not by typing (Back, "Весь список", a new contact):
+  // the field follows the URL. A reply to our own typing leaves the field alone,
+  // so letters typed in the meantime stay.
+  const [shownQuery, setShownQuery] = useState(query);
+  if (query !== shownQuery) {
+    setShownQuery(query);
+    if (query !== sentQuery) {
+      setInputValue(query);
+      setSentQuery(query);
+    }
   }
+
+  // The card's "Весь список" and deletion come back to this view; a just-added
+  // contact (?added=) is not part of it.
+  useEffect(() => {
+    rememberListHref(buildListHref({ q: query, page, size: pageSize }));
+  }, [query, page, pageSize]);
 
   useEffect(() => {
     if (highlightId !== null) {
@@ -75,38 +112,48 @@ export function ContactDirectory({
     }
   }, [highlightId]);
 
-  const normalizedNames = useMemo(
-    () => contacts.map((contact) => normalizeForSearch(contact.name)),
-    [contacts],
-  );
-
-  const words = useMemo(() => toSearchWords(deferredQuery), [deferredQuery]);
-  const isSearching = words.length > 0;
-
-  const visibleContacts = useMemo(
-    () =>
-      isSearching
-        ? contacts.filter((_, index) =>
-            matchesAllWords(normalizedNames[index], words),
-          )
-        : contacts,
-    [contacts, normalizedNames, words, isSearching],
-  );
-
-  const groups = useMemo(
-    () =>
-      isSearching
-        ? [{ letter: "", contacts: visibleContacts }]
-        : groupByLetter(visibleContacts),
-    [isSearching, visibleContacts],
-  );
-
-  function clearSearch() {
-    setQuery("");
-    inputRef.current?.focus();
+  // A transition keeps the old page on screen, dimmed, until the new one arrives.
+  function navigate(href: string, history: "push" | "replace" = "push") {
+    startTransition(() => {
+      router[history](href, { scroll: false });
+    });
   }
 
-  if (contacts.length === 0) {
+  // Page switcher and size picker: the search row goes to the top of the screen,
+  // not the top of the main page with "Пора мстить".
+  function showPage(href: string) {
+    topRef.current?.scrollIntoView({ block: "start" });
+    navigate(href);
+  }
+
+  // The first letters start a search: a new history entry. Later edits replace it,
+  // so Back returns to where the search started instead of going letter by letter.
+  const sendSearch = useEffectEvent((text: string) => {
+    navigate(
+      buildListHref({ q: text, page: 1, size: pageSize }),
+      sentQuery ? "replace" : "push",
+    );
+    setSentQuery(text);
+  });
+
+  useEffect(() => {
+    const text = inputValue.trim();
+    if (text === sentQuery) return;
+    const timer = setTimeout(() => sendSearch(text), SEARCH_DELAY_MS);
+    return () => clearTimeout(timer);
+  }, [inputValue, sentQuery]);
+
+  // The cross and Esc clear at once, without the pause, keeping the page size.
+  function clearSearch() {
+    setInputValue("");
+    inputRef.current?.focus();
+    if (sentQuery) {
+      setSentQuery("");
+      navigate(buildListHref({ page: 1, size: pageSize }));
+    }
+  }
+
+  if (totalCount === 0) {
     return (
       <div className="rounded-card border bg-card px-6 py-16 text-center">
         <p className="font-display text-xl">Здесь пока никого нет</p>
@@ -117,8 +164,13 @@ export function ContactDirectory({
     );
   }
 
+  const isSearching = query !== "";
+  const groups = isSearching
+    ? [{ letter: "", contacts }]
+    : groupByLetter(contacts);
+
   return (
-    <div>
+    <div ref={topRef}>
       <div className="sticky top-0 z-10 -mx-4 bg-background/90 px-4 pt-2 pb-3 backdrop-blur">
         <form role="search" onSubmit={(event) => event.preventDefault()}>
           <InputGroup className="h-11 bg-card">
@@ -127,10 +179,10 @@ export function ContactDirectory({
             </InputGroupAddon>
             <InputGroupInput
               ref={inputRef}
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
+              value={inputValue}
+              onChange={(event) => setInputValue(event.target.value)}
               onKeyDown={(event) => {
-                if (event.key === "Escape" && query) {
+                if (event.key === "Escape" && inputValue) {
                   event.preventDefault();
                   clearSearch();
                 }
@@ -141,7 +193,7 @@ export function ContactDirectory({
               enterKeyHint="search"
               className="text-base"
             />
-            {query && (
+            {inputValue && (
               <InputGroupAddon align="inline-end">
                 <InputGroupButton
                   size="icon-xs"
@@ -154,44 +206,67 @@ export function ContactDirectory({
             )}
           </InputGroup>
         </form>
-        <p className="mt-2 px-1 text-sm text-muted-foreground" aria-live="polite">
-          {isSearching
-            ? `Найдено: ${visibleContacts.length} из ${contacts.length}`
-            : `${contacts.length} ${pluralize(contacts.length, ["контакт", "контакта", "контактов"])}`}
-        </p>
+        <div className="mt-2 flex items-center justify-between gap-3 px-1">
+          <p className="text-sm text-muted-foreground" aria-live="polite">
+            {isSearching
+              ? `Найдено: ${matchedCount} из ${totalCount}`
+              : `${totalCount} ${pluralize(totalCount, ["контакт", "контакта", "контактов"])}`}
+          </p>
+          <PageSizePicker
+            page={page}
+            pageSize={pageSize}
+            query={query}
+            matchedCount={matchedCount}
+            onNavigate={showPage}
+          />
+        </div>
       </div>
 
-      {visibleContacts.length === 0 ? (
-        <div className="flex flex-col items-center px-3 py-12 text-center">
-          <CatConfused />
-          <p className="mt-4 font-display text-xl">Никого не нашли</p>
-          <p className="mt-1 text-sm text-muted-foreground">
-            По запросу «{deferredQuery.trim()}» контактов нет. Проверьте имя
-            или добавьте нового человека.
-          </p>
-        </div>
-      ) : (
-        <div className="flex flex-col gap-5">
-          {groups.map((group, index) => (
-            <section key={`${group.letter}-${index}`}>
-              {group.letter && (
-                <h2 className="px-1 pb-2 font-display text-lg leading-none text-primary">
-                  {group.letter}
-                </h2>
-              )}
-              <ul className="divide-y overflow-hidden rounded-card border bg-card">
-                {group.contacts.map((contact) => (
-                  <ContactRow
-                    key={contact.id}
-                    contact={contact}
-                    isNew={contact.id === highlightId}
-                  />
-                ))}
-              </ul>
-            </section>
-          ))}
-        </div>
-      )}
+      <div
+        aria-busy={isPending || undefined}
+        className={cn("transition-opacity", isPending && "opacity-60")}
+      >
+        {matchedCount === 0 ? (
+          <div className="flex flex-col items-center px-3 py-12 text-center">
+            <CatConfused />
+            <p className="mt-4 font-display text-xl">Никого не нашли</p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              По запросу «{query}» контактов нет. Проверьте имя или добавьте
+              нового человека.
+            </p>
+          </div>
+        ) : (
+          <>
+            <div className="flex flex-col gap-5">
+              {groups.map((group, index) => (
+                <section key={`${group.letter}-${index}`}>
+                  {group.letter && (
+                    <h2 className="px-1 pb-2 font-display text-lg leading-none text-primary">
+                      {group.letter}
+                    </h2>
+                  )}
+                  <ul className="divide-y overflow-hidden rounded-card border bg-card">
+                    {group.contacts.map((contact) => (
+                      <ContactRow
+                        key={contact.id}
+                        contact={contact}
+                        isNew={contact.id === highlightId}
+                      />
+                    ))}
+                  </ul>
+                </section>
+              ))}
+            </div>
+            <ContactPagination
+              page={page}
+              pageCount={pageCount}
+              query={query}
+              pageSize={pageSize}
+              onNavigate={showPage}
+            />
+          </>
+        )}
+      </div>
     </div>
   );
 }

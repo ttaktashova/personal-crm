@@ -1,12 +1,21 @@
 import type { Metadata } from "next";
+import { cookies } from "next/headers";
 import { Suspense } from "react";
 
 import { ContactDirectory } from "@/components/contact-directory";
 import { DueContacts } from "@/components/due-contacts";
 import { NewContactDialog } from "@/components/new-contact-dialog";
 import { Skeleton } from "@/components/ui/skeleton";
-import { listContacts } from "@/lib/contacts";
+import { findContactPage, listContactsPage } from "@/lib/contacts";
 import { parseId } from "@/lib/ids";
+import {
+  DEFAULT_PAGE_SIZE,
+  firstValue,
+  PAGE_SIZE_COOKIE,
+  parsePage,
+  parsePageSize,
+} from "@/lib/pagination";
+import { toSearchWords } from "@/lib/search";
 
 // The layout's title template skips pages of its own segment, so the suffix is spelled out here.
 export const metadata: Metadata = {
@@ -36,16 +45,43 @@ export default function ContactsPage({ searchParams }: PageProps<"/">) {
 }
 
 // Reads the database on every request, so another browser sees the same, fresh list.
+// Only one page goes to the browser: ?page=, ?q= and ?size= pick which one.
 async function Directory({
   searchParams,
 }: Pick<PageProps<"/">, "searchParams">) {
-  const { added } = await searchParams;
-  const contacts = await listContacts();
+  const params = await searchParams;
+  const cookieStore = await cookies();
+
+  // The size in the URL wins, then the one remembered in this browser, then 50.
+  const pageSize =
+    parsePageSize(params.size) ??
+    parsePageSize(cookieStore.get(PAGE_SIZE_COOKIE)?.value) ??
+    DEFAULT_PAGE_SIZE;
+  const query = (firstValue(params.q) ?? "").trim();
+  const highlightId = parseId(firstValue(params.added));
+
+  // After "Добавить черта" (/?added=42) open the page where the new contact stands.
+  let page = parsePage(params.page);
+  if (highlightId !== null && params.page === undefined) {
+    page = (await findContactPage(highlightId, pageSize)) ?? 1;
+  }
+
+  const list = await listContactsPage({
+    page,
+    pageSize,
+    words: toSearchWords(query),
+  });
 
   return (
     <ContactDirectory
-      contacts={contacts}
-      highlightId={parseId(added)}
+      contacts={list.contacts}
+      totalCount={list.totalCount}
+      matchedCount={list.matchedCount}
+      page={list.page}
+      pageCount={list.pageCount}
+      pageSize={pageSize}
+      query={query}
+      highlightId={highlightId}
     />
   );
 }
