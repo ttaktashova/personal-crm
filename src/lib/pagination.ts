@@ -1,6 +1,8 @@
 // Pages of the contact list: allowed sizes, URL values and links.
 // Used both on the server (page.tsx) and in the browser (switcher, size picker).
 
+import { parseId } from "@/lib/ids";
+
 export const PAGE_SIZES = [25, 50, 100] as const;
 export type PageSize = (typeof PAGE_SIZES)[number];
 export const DEFAULT_PAGE_SIZE: PageSize = 50;
@@ -31,6 +33,14 @@ export function parsePageSize(value: SearchParamValue): PageSize | null {
   return PAGE_SIZES.find((allowed) => String(allowed) === text) ?? null;
 }
 
+// The size in the address wins, then the one remembered in this browser (its cookie value), then 50.
+export function resolvePageSize(
+  param: SearchParamValue,
+  rememberedValue: string | undefined,
+): PageSize {
+  return parsePageSize(param) ?? parsePageSize(rememberedValue) ?? DEFAULT_PAGE_SIZE;
+}
+
 // The first contact of the current page stays on screen after the size changes:
 // page 3 by 50 (contacts 101–150) is page 5 by 25 and page 2 by 100.
 export function pageForSizeChange(page: number, oldSize: number, newSize: number): number {
@@ -59,18 +69,33 @@ export function getPageItems(current: number, pageCount: number, siblings: numbe
   return items;
 }
 
-// The one place that builds list URLs: /?q=петров&page=2&size=100.
-// Defaults stay out of the URL: no page on the first one, no size at 50, no empty search.
+// The group of ?group=3: its id if such a group exists, otherwise null, which means "Все".
+// A missing parameter, a word, a number that is not an id and a deleted group all give null,
+// so an old bookmark opens the whole list instead of an error.
+export function resolveGroupFilter(
+  value: SearchParamValue,
+  groups: { id: number }[],
+): number | null {
+  const id = parseId(firstValue(value));
+  return id !== null && groups.some((group) => group.id === id) ? id : null;
+}
+
+// The one place that builds list URLs: /?group=3&q=петров&page=2&size=100.
+// Defaults stay out of the URL: no group at "Все", no page on the first one,
+// no size at 50, no empty search.
 export function buildListHref({
+  group,
   q,
   page,
   size,
 }: {
+  group?: number | null;
   q?: string;
   page: number;
   size: PageSize;
 }): string {
   const params = new URLSearchParams();
+  if (group != null) params.set("group", String(group));
   const query = q?.trim();
   if (query) params.set("q", query);
   if (page > 1) params.set("page", String(page));

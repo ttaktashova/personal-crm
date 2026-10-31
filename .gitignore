@@ -8,6 +8,11 @@ node_modules/
 out/
 build/
 
+# Playwright reports and traces
+test-results/
+playwright-report/
+blob-report/
+
 # Misc
 .DS_Store
 *.pem

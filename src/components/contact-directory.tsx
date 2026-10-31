@@ -3,13 +3,7 @@
 import { ChevronRightIcon, SearchIcon, XIcon } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import {
-  useEffect,
-  useEffectEvent,
-  useRef,
-  useState,
-  useTransition,
-} from "react";
+import { useEffect, useEffectEvent, useRef, useState, useTransition } from "react";
 
 import { CatConfused } from "@/components/cat-confused";
 import { ContactAvatar } from "@/components/contact-avatar";
@@ -23,13 +17,18 @@ import {
   InputGroupInput,
 } from "@/components/ui/input-group";
 import type { ContactListItem } from "@/lib/contacts";
-import { pluralize } from "@/lib/format";
+import { formatContactCount } from "@/lib/format";
+import { splitGroupBadges } from "@/lib/group-badges";
+import type { GroupItem } from "@/lib/groups";
 import { rememberListHref } from "@/lib/list-return";
 import { buildListHref, type PageSize } from "@/lib/pagination";
 import { cn } from "@/lib/utils";
 
 // The URL follows the search field this long after the last key.
 const SEARCH_DELAY_MS = 300;
+
+// The groups of a person in a row of the list: this many labels, the rest as "+2".
+const MAX_GROUP_BADGES = 3;
 
 type LetterGroup = { letter: string; contacts: ContactListItem[] };
 
@@ -55,13 +54,15 @@ function groupByLetter(contacts: ContactListItem[]): LetterGroup[] {
   return groups;
 }
 
-// One page of the list comes from the server; the page, the search and the size
-// live in the URL (?page=, ?q=, ?size=). The field shows letters as they are typed,
+// One page of the list comes from the server; the group, the page, the search and the size
+// live in the URL (?group=, ?page=, ?q=, ?size=). The field shows letters as they are typed,
 // and the URL follows a moment later, so the server searches all contacts.
 export function ContactDirectory({
   contacts,
   totalCount,
   matchedCount,
+  allCount,
+  group,
   page,
   pageCount,
   pageSize,
@@ -69,8 +70,10 @@ export function ContactDirectory({
   highlightId,
 }: {
   contacts: ContactListItem[];
-  totalCount: number;
+  totalCount: number; // the people of the chosen group, or everybody
   matchedCount: number;
+  allCount: number; // all contacts: no contacts at all is not the same as an empty group
+  group: GroupItem | null;
   page: number;
   pageCount: number;
   pageSize: PageSize;
@@ -78,6 +81,7 @@ export function ContactDirectory({
   highlightId: number | null;
 }) {
   const router = useRouter();
+  const groupId = group?.id ?? null;
   const [isPending, startTransition] = useTransition();
   const topRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -101,14 +105,12 @@ export function ContactDirectory({
   // The card's "Весь список" and deletion come back to this view; a just-added
   // contact (?added=) is not part of it.
   useEffect(() => {
-    rememberListHref(buildListHref({ q: query, page, size: pageSize }));
-  }, [query, page, pageSize]);
+    rememberListHref(buildListHref({ group: groupId, q: query, page, size: pageSize }));
+  }, [groupId, query, page, pageSize]);
 
   useEffect(() => {
     if (highlightId !== null) {
-      document
-        .getElementById(`contact-${highlightId}`)
-        ?.scrollIntoView({ block: "center" });
+      document.getElementById(`contact-${highlightId}`)?.scrollIntoView({ block: "center" });
     }
   }, [highlightId]);
 
@@ -130,7 +132,7 @@ export function ContactDirectory({
   // so Back returns to where the search started instead of going letter by letter.
   const sendSearch = useEffectEvent((text: string) => {
     navigate(
-      buildListHref({ q: text, page: 1, size: pageSize }),
+      buildListHref({ group: groupId, q: text, page: 1, size: pageSize }),
       sentQuery ? "replace" : "push",
     );
     setSentQuery(text);
@@ -143,17 +145,18 @@ export function ContactDirectory({
     return () => clearTimeout(timer);
   }, [inputValue, sentQuery]);
 
-  // The cross and Esc clear at once, without the pause, keeping the page size.
+  // The cross and Esc clear at once, without the pause, keeping the group and the page size.
   function clearSearch() {
     setInputValue("");
     inputRef.current?.focus();
     if (sentQuery) {
       setSentQuery("");
-      navigate(buildListHref({ page: 1, size: pageSize }));
+      navigate(buildListHref({ group: groupId, page: 1, size: pageSize }));
     }
   }
 
-  if (totalCount === 0) {
+  // No page switcher and no size picker here: there is nothing to switch.
+  if (allCount === 0) {
     return (
       <div className="rounded-card border bg-card px-6 py-16 text-center">
         <p className="font-display text-xl">Здесь пока никого нет</p>
@@ -164,10 +167,19 @@ export function ContactDirectory({
     );
   }
 
+  if (group && totalCount === 0) {
+    return (
+      <div className="rounded-card border bg-card px-6 py-16 text-center">
+        <p className="font-display text-xl break-words">В группе «{group.name}» пока никого нет</p>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Добавьте человека в группу в окне «Редактировать контакт».
+        </p>
+      </div>
+    );
+  }
+
   const isSearching = query !== "";
-  const groups = isSearching
-    ? [{ letter: "", contacts }]
-    : groupByLetter(contacts);
+  const groups = isSearching ? [{ letter: "", contacts }] : groupByLetter(contacts);
 
   return (
     <div ref={topRef}>
@@ -195,11 +207,7 @@ export function ContactDirectory({
             />
             {inputValue && (
               <InputGroupAddon align="inline-end">
-                <InputGroupButton
-                  size="icon-xs"
-                  onClick={clearSearch}
-                  aria-label="Очистить поиск"
-                >
+                <InputGroupButton size="icon-xs" onClick={clearSearch} aria-label="Очистить поиск">
                   <XIcon />
                 </InputGroupButton>
               </InputGroupAddon>
@@ -210,9 +218,10 @@ export function ContactDirectory({
           <p className="text-sm text-muted-foreground" aria-live="polite">
             {isSearching
               ? `Найдено: ${matchedCount} из ${totalCount}`
-              : `${totalCount} ${pluralize(totalCount, ["контакт", "контакта", "контактов"])}`}
+              : formatContactCount(totalCount)}
           </p>
           <PageSizePicker
+            group={groupId}
             page={page}
             pageSize={pageSize}
             query={query}
@@ -231,8 +240,7 @@ export function ContactDirectory({
             <CatConfused />
             <p className="mt-4 font-display text-xl">Никого не нашли</p>
             <p className="mt-1 text-sm text-muted-foreground">
-              По запросу «{query}» контактов нет. Проверьте имя или добавьте
-              нового человека.
+              По запросу «{query}» контактов нет. Проверьте имя или добавьте нового человека.
             </p>
           </div>
         ) : (
@@ -258,6 +266,7 @@ export function ContactDirectory({
               ))}
             </div>
             <ContactPagination
+              group={groupId}
               page={page}
               pageCount={pageCount}
               query={query}
@@ -271,13 +280,44 @@ export function ContactDirectory({
   );
 }
 
-function ContactRow({
-  contact,
-  isNew,
-}: {
-  contact: ContactListItem;
-  isNew: boolean;
-}) {
+// A separate row under "Откуда знакомы", only for a person who has groups. A long name is cut
+// with an ellipsis and shown in full on hover; the row never grows wider than the screen.
+function GroupBadges({ groups }: { groups: ContactListItem["groups"] }) {
+  const { visible, hiddenCount } = splitGroupBadges(groups, MAX_GROUP_BADGES);
+  if (visible.length === 0) return null;
+
+  return (
+    <ul aria-label="Группы" className="mt-1 flex flex-nowrap items-center gap-1 overflow-hidden">
+      {visible.map((group) => (
+        <li key={group.id} className="flex min-w-0 shrink">
+          {/* The badge does not shrink by default; here a long name has to give way. */}
+          <Badge
+            variant="outline"
+            title={group.name}
+            className="max-w-40 min-w-0 shrink! text-caption"
+          >
+            <span className="truncate">{group.name}</span>
+          </Badge>
+        </li>
+      ))}
+      {hiddenCount > 0 && (
+        <li className="shrink-0">
+          <Badge
+            variant="secondary"
+            title={groups
+              .slice(MAX_GROUP_BADGES)
+              .map((group) => group.name)
+              .join(", ")}
+          >
+            +{hiddenCount}
+          </Badge>
+        </li>
+      )}
+    </ul>
+  );
+}
+
+function ContactRow({ contact, isNew }: { contact: ContactListItem; isNew: boolean }) {
   return (
     <li id={`contact-${contact.id}`}>
       <Link
@@ -292,30 +332,21 @@ function ContactRow({
           <div className="flex items-center gap-2">
             <span className="truncate font-semibold">{contact.name}</span>
             {isNew && (
-              <Badge
-                variant="outline"
-                className="border-primary bg-transparent text-primary"
-              >
+              <Badge variant="outline" className="border-primary bg-transparent text-primary">
                 Новый
               </Badge>
             )}
           </div>
           {contact.howWeMet && (
-            <p className="truncate text-sm text-muted-foreground">
-              {contact.howWeMet}
-            </p>
+            <p className="truncate text-sm text-muted-foreground">{contact.howWeMet}</p>
           )}
+          <GroupBadges groups={contact.groups} />
         </div>
         <div className="hidden shrink-0 text-right text-sm text-muted-foreground sm:block">
           {contact.phone && <p className="tabular-nums">{contact.phone}</p>}
-          {contact.email && (
-            <p className="max-w-60 truncate">{contact.email}</p>
-          )}
+          {contact.email && <p className="max-w-60 truncate">{contact.email}</p>}
         </div>
-        <ChevronRightIcon
-          aria-hidden
-          className="size-4 shrink-0 text-muted-foreground"
-        />
+        <ChevronRightIcon aria-hidden className="size-4 shrink-0 text-muted-foreground" />
       </Link>
     </li>
   );

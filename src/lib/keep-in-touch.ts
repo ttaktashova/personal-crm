@@ -3,7 +3,7 @@ import "server-only";
 import { sql } from "drizzle-orm";
 
 import { runQuery } from "@/db";
-import { contacts, interactions } from "@/db/schema";
+import { contactGroups, contacts, interactions } from "@/db/schema";
 import type { ContactFrequency } from "@/lib/contact-frequency";
 
 export type DueContact = {
@@ -19,7 +19,19 @@ export type DueContact = {
 // A week is 7 days; a month, a quarter and a year are calendar ones, and Postgres moves
 // 31.01 + 1 month to 28.02 by itself. Order: no revenge yet first, then the earliest term,
 // then the name in the same Russian collation as the contact list; id breaks the last ties.
-export async function listDueContacts(today: string): Promise<DueContact[]> {
+// With `groupId` only the people of that group are counted, in the same order.
+export async function listDueContacts(
+  today: string,
+  groupId: number | null,
+): Promise<DueContact[]> {
+  const inGroup =
+    groupId === null
+      ? sql``
+      : sql`and exists (
+          select 1 from ${contactGroups} cg
+          where cg.contact_id = c.id and cg.group_id = ${groupId}::integer
+        )`;
+
   const rows = await runQuery("listDueContacts", (db) =>
     db.execute<{
       id: number;
@@ -42,7 +54,7 @@ export async function listDueContacts(today: string): Promise<DueContact[]> {
           from ${interactions} i
           where i.contact_id = c.id
         ) last on true
-        where c.contact_frequency is not null
+        where c.contact_frequency is not null ${inGroup}
       ) due
       where due_on is null or due_on <= ${today}::date
       order by due_on asc nulls first, name collate "ru-RU-x-icu", id

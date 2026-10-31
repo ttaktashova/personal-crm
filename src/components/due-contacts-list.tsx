@@ -7,17 +7,9 @@ import { useEffect, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 
 import { stopReminders, type StopRemindersResult } from "@/app/contacts/actions";
-import {
-  markContacted,
-  type MarkContactedResult,
-} from "@/app/contacts/interaction-actions";
+import { markContacted, type MarkContactedResult } from "@/app/contacts/interaction-actions";
 import { Button } from "@/components/ui/button";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { pluralize } from "@/lib/format";
 
 // Texts are ready on the server, where "today" is known.
@@ -45,9 +37,7 @@ export function DueContactsList({ contacts }: { contacts: DueContactItem[] }) {
   // "+ещё …" disappears on click, so focus moves to the first contact it revealed.
   useEffect(() => {
     if (expanded) {
-      listRef.current
-        ?.querySelectorAll<HTMLElement>("li a")
-        [COLLAPSED_COUNT]?.focus();
+      listRef.current?.querySelectorAll<HTMLElement>("li a")[COLLAPSED_COUNT]?.focus();
     }
   }, [expanded]);
 
@@ -75,8 +65,7 @@ export function DueContactsList({ contacts }: { contacts: DueContactItem[] }) {
                 onClick={() => setExpanded(true)}
                 className="flex h-13 w-full items-center justify-center gap-2 px-4 text-ui font-semibold text-primary outline-none transition-colors hover:bg-muted focus-visible:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:ring-inset sm:justify-start sm:px-5"
               >
-                +ещё {hiddenCount}{" "}
-                {pluralize(hiddenCount, ["людишка", "людишки", "людишек"])}
+                +ещё {hiddenCount} {pluralize(hiddenCount, ["людишка", "людишки", "людишек"])}
                 <ChevronDownIcon aria-hidden className="size-4" />
               </button>
             </li>
@@ -103,7 +92,9 @@ function DueContactRow({ contact }: { contact: DueContactItem }) {
           router.refresh();
         }
       } catch {
-        toast.error("Не удалось сохранить. Проверьте, что приложение запущено, и попробуйте ещё раз.");
+        toast.error(
+          "Не удалось сохранить. Проверьте, что приложение запущено, и попробуйте ещё раз.",
+        );
       }
     });
   }
@@ -118,8 +109,7 @@ function DueContactRow({ contact }: { contact: DueContactItem }) {
           {contact.name}
         </Link>
         <p className="mt-0.5 text-sm text-muted-foreground">
-          {contact.frequency} ·{" "}
-          <span className="font-medium text-primary">{contact.due}</span>
+          {contact.frequency} · <span className="font-medium text-primary">{contact.due}</span>
         </p>
       </div>
       <div className="flex shrink-0 gap-2.5 sm:gap-2">

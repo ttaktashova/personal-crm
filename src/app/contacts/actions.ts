@@ -5,11 +5,8 @@ import { revalidatePath } from "next/cache";
 
 import { runQuery } from "@/db";
 import { contacts } from "@/db/schema";
-import {
-  contactInputSchema,
-  toFieldErrors,
-  type ContactFieldErrors,
-} from "@/lib/contact-schema";
+import { contactInputSchema, toFieldErrors, type ContactFieldErrors } from "@/lib/contact-schema";
+import { insertContact, updateContactById } from "@/lib/contacts";
 import { parseId } from "@/lib/ids";
 
 export type SaveContactResult =
@@ -23,18 +20,13 @@ export async function createContact(input: unknown): Promise<SaveContactResult> 
     return { status: "invalid", fieldErrors: toFieldErrors(parsed.error) };
   }
 
-  const [created] = await runQuery("createContact", (db) =>
-    db.insert(contacts).values(parsed.data).returning({ id: contacts.id }),
-  );
+  const created = await insertContact(parsed.data);
 
   revalidatePath("/");
   return { status: "saved", id: created.id };
 }
 
-export async function updateContact(
-  id: unknown,
-  input: unknown,
-): Promise<SaveContactResult> {
+export async function updateContact(id: unknown, input: unknown): Promise<SaveContactResult> {
   const contactId = parseId(id);
   if (contactId === null) {
     return { status: "not-found" };
@@ -45,14 +37,7 @@ export async function updateContact(
     return { status: "invalid", fieldErrors: toFieldErrors(parsed.error) };
   }
 
-  const [updated] = await runQuery("updateContact", (db) =>
-    db
-      .update(contacts)
-      .set({ ...parsed.data, updatedAt: sql`now()` })
-      .where(eq(contacts.id, contactId))
-      .returning({ id: contacts.id }),
-  );
-
+  const updated = await updateContactById(contactId, parsed.data);
   if (!updated) {
     return { status: "not-found" };
   }

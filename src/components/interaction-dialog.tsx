@@ -5,12 +5,7 @@ import { useRef, useTransition } from "react";
 
 import { InteractionForm } from "@/components/interaction-form";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogClose,
-  DialogContent,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Dialog, DialogClose, DialogContent, DialogTitle } from "@/components/ui/dialog";
 
 // The "Отомстил" window from the card section. Looks and behaves like the contact
 // windows. A closed window unmounts its form, so every opening starts from today's

@@ -58,11 +58,7 @@ export function InteractionSection({
         )}
       </div>
 
-      <InteractionDialog
-        contactId={contactId}
-        open={isAddOpen}
-        onOpenChange={setIsAddOpen}
-      />
+      <InteractionDialog contactId={contactId} open={isAddOpen} onOpenChange={setIsAddOpen} />
       <InteractionHistoryDialog
         contactId={contactId}
         interactions={interactions}

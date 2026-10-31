@@ -26,12 +26,14 @@ function rememberPageSize(size: PageSize) {
 // "По: 25 · 50 · 100" next to the counter. Not shown when everything fits in 25.
 // The first contact of the current page stays on screen after the change.
 export function PageSizePicker({
+  group,
   page,
   pageSize,
   query,
   matchedCount,
   onNavigate,
 }: {
+  group: number | null;
   page: number;
   pageSize: PageSize;
   query: string;
@@ -49,6 +51,7 @@ export function PageSizePicker({
       <span className="mr-0.5">По:</span>
       {PAGE_SIZES.map((size, index) => {
         const href = buildListHref({
+          group,
           q: query,
           page: pageForSizeChange(page, pageSize, size),
           size,

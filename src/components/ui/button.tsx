@@ -1,6 +1,6 @@
-import { Button as ButtonPrimitive } from "@base-ui/react/button"
-import { cva, type VariantProps } from "class-variance-authority"
-import { cn } from "cn"
+import { Button as ButtonPrimitive } from "@base-ui/react/button";
+import { cva, type VariantProps } from "class-variance-authority";
+import { cn } from "cn";
 
 // Buttons follow the landing: display font, red fill, 3px cream focus outline.
 // The press nudge lives in each variant, so "cta" can press into its own shadow instead.
@@ -32,8 +32,7 @@ const buttonVariants = cva(
         icon: "size-10",
         "icon-xs":
           "size-6 rounded-[min(var(--radius-md),10px)] in-data-[slot=button-group]:rounded-lg [&_svg:not([class*='size-'])]:size-3",
-        "icon-sm":
-          "size-8 rounded-lg in-data-[slot=button-group]:rounded-lg",
+        "icon-sm": "size-8 rounded-lg in-data-[slot=button-group]:rounded-lg",
         "icon-lg": "size-11",
       },
     },
@@ -41,8 +40,8 @@ const buttonVariants = cva(
       variant: "default",
       size: "default",
     },
-  }
-)
+  },
+);
 
 function Button({
   className,
@@ -56,7 +55,7 @@ function Button({
       className={cn(buttonVariants({ variant, size, className }))}
       {...props}
     />
-  )
+  );
 }
 
-export { Button, buttonVariants }
+export { Button, buttonVariants };

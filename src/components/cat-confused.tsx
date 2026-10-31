@@ -4,11 +4,7 @@ import { cn } from "@/lib/utils";
 // "Знакомо?" block. Decorative: the text next to it says what happened.
 export function CatConfused({ className }: { className?: string }) {
   return (
-    <svg
-      viewBox="0 0 130 92"
-      aria-hidden
-      className={cn("h-23 w-32.5 flex-none", className)}
-    >
+    <svg viewBox="0 0 130 92" aria-hidden className={cn("h-23 w-32.5 flex-none", className)}>
       <g transform="translate(20 4) scale(0.42)">
         <path
           d="M58 100 L66 22 Q68 12 78 18 L120 56 Z"
