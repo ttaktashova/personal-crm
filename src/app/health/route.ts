@@ -1,7 +1,7 @@
 import { sql } from "drizzle-orm";
 import { connection } from "next/server";
 
-import { db } from "@/db";
+import { runQuery } from "@/db";
 
 // Smoke check for deploys: 200 when the app is up and can reach the database.
 export async function GET() {
@@ -9,7 +9,7 @@ export async function GET() {
   await connection();
 
   try {
-    await db.execute(sql`select 1`);
+    await runQuery("healthCheck", (db) => db.execute(sql`select 1`));
     return Response.json({ status: "ok" });
   } catch (error) {
     console.error("Health check failed:", error);

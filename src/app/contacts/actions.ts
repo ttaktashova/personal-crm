@@ -3,7 +3,7 @@
 import { eq, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 
-import { db } from "@/db";
+import { runQuery } from "@/db";
 import { contacts } from "@/db/schema";
 import {
   contactInputSchema,
@@ -23,10 +23,9 @@ export async function createContact(input: unknown): Promise<SaveContactResult> 
     return { status: "invalid", fieldErrors: toFieldErrors(parsed.error) };
   }
 
-  const [created] = await db
-    .insert(contacts)
-    .values(parsed.data)
-    .returning({ id: contacts.id });
+  const [created] = await runQuery("createContact", (db) =>
+    db.insert(contacts).values(parsed.data).returning({ id: contacts.id }),
+  );
 
   revalidatePath("/");
   return { status: "saved", id: created.id };
@@ -46,11 +45,13 @@ export async function updateContact(
     return { status: "invalid", fieldErrors: toFieldErrors(parsed.error) };
   }
 
-  const [updated] = await db
-    .update(contacts)
-    .set({ ...parsed.data, updatedAt: sql`now()` })
-    .where(eq(contacts.id, contactId))
-    .returning({ id: contacts.id });
+  const [updated] = await runQuery("updateContact", (db) =>
+    db
+      .update(contacts)
+      .set({ ...parsed.data, updatedAt: sql`now()` })
+      .where(eq(contacts.id, contactId))
+      .returning({ id: contacts.id }),
+  );
 
   if (!updated) {
     return { status: "not-found" };
@@ -71,11 +72,13 @@ export async function stopReminders(id: unknown): Promise<StopRemindersResult> {
     return { status: "not-found" };
   }
 
-  const [updated] = await db
-    .update(contacts)
-    .set({ contactFrequency: null, updatedAt: sql`now()` })
-    .where(eq(contacts.id, contactId))
-    .returning({ id: contacts.id });
+  const [updated] = await runQuery("stopReminders", (db) =>
+    db
+      .update(contacts)
+      .set({ contactFrequency: null, updatedAt: sql`now()` })
+      .where(eq(contacts.id, contactId))
+      .returning({ id: contacts.id }),
+  );
 
   if (!updated) {
     return { status: "not-found" };
@@ -94,10 +97,9 @@ export async function deleteContact(id: unknown): Promise<DeleteContactResult> {
     return { status: "not-found" };
   }
 
-  const [deleted] = await db
-    .delete(contacts)
-    .where(eq(contacts.id, contactId))
-    .returning({ id: contacts.id });
+  const [deleted] = await runQuery("deleteContact", (db) =>
+    db.delete(contacts).where(eq(contacts.id, contactId)).returning({ id: contacts.id }),
+  );
 
   if (!deleted) {
     return { status: "not-found" };

@@ -3,7 +3,7 @@
 import { eq, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 
-import { db } from "@/db";
+import { runQuery } from "@/db";
 import { contacts, interactions } from "@/db/schema";
 import { todayIsoDate } from "@/lib/dates";
 import { parseId } from "@/lib/ids";
@@ -31,13 +31,15 @@ async function insertInteraction(
   occurredOn: string,
   summary: string,
 ): Promise<boolean> {
-  const inserted = await db.execute<{ id: number }>(sql`
-    insert into ${interactions} (contact_id, occurred_on, summary)
-    select ${contacts.id}, ${occurredOn}::date, ${summary}::text
-    from ${contacts}
-    where ${contacts.id} = ${contactId}
-    returning id
-  `);
+  const inserted = await runQuery("insertInteraction", (db) =>
+    db.execute<{ id: number }>(sql`
+      insert into ${interactions} (contact_id, occurred_on, summary)
+      select ${contacts.id}, ${occurredOn}::date, ${summary}::text
+      from ${contacts}
+      where ${contacts.id} = ${contactId}
+      returning id
+    `),
+  );
   return inserted.length > 0;
 }
 
@@ -98,11 +100,13 @@ export async function updateInteraction(
     return { status: "invalid", fieldErrors: toFieldErrors(parsed.error) };
   }
 
-  const [updated] = await db
-    .update(interactions)
-    .set(parsed.data)
-    .where(eq(interactions.id, id))
-    .returning({ contactId: interactions.contactId });
+  const [updated] = await runQuery("updateInteraction", (db) =>
+    db
+      .update(interactions)
+      .set(parsed.data)
+      .where(eq(interactions.id, id))
+      .returning({ contactId: interactions.contactId }),
+  );
 
   if (!updated) {
     return { status: "not-found" };
@@ -123,10 +127,12 @@ export async function deleteInteraction(
     return { status: "not-found" };
   }
 
-  const [deleted] = await db
-    .delete(interactions)
-    .where(eq(interactions.id, id))
-    .returning({ contactId: interactions.contactId });
+  const [deleted] = await runQuery("deleteInteraction", (db) =>
+    db
+      .delete(interactions)
+      .where(eq(interactions.id, id))
+      .returning({ contactId: interactions.contactId }),
+  );
 
   if (!deleted) {
     return { status: "not-found" };

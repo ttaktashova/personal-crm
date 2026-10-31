@@ -3,7 +3,7 @@ import "server-only";
 import { and, asc, count, eq, sql } from "drizzle-orm";
 import { cache } from "react";
 
-import { db } from "@/db";
+import { runQuery } from "@/db";
 import { contacts } from "@/db/schema";
 import { escapeLike } from "@/lib/search";
 
@@ -55,53 +55,55 @@ export async function listContactsPage({
       ? and(...words.map((word) => sql`${nameForSearch} like ${`%${escapeLike(word)}%`}`))
       : undefined;
 
-  const [counts] = await db
-    .select({
-      totalCount: count(),
-      matchedCount: match
-        ? sql<number>`count(*) filter (where ${match})`.mapWith(Number)
-        : count(),
-    })
-    .from(contacts);
+  return runQuery("listContactsPage", async (db) => {
+    const [counts] = await db
+      .select({
+        totalCount: count(),
+        matchedCount: match
+          ? sql<number>`count(*) filter (where ${match})`.mapWith(Number)
+          : count(),
+      })
+      .from(contacts);
 
-  // A page past the last one opens the last one, without a redirect.
-  const pageCount = Math.max(1, Math.ceil(counts.matchedCount / pageSize));
-  const shownPage = Math.min(Math.max(page, 1), pageCount);
+    // A page past the last one opens the last one, without a redirect.
+    const pageCount = Math.max(1, Math.ceil(counts.matchedCount / pageSize));
+    const shownPage = Math.min(Math.max(page, 1), pageCount);
 
-  const rows = await db
-    .select(listItemColumns)
-    .from(contacts)
-    .where(match)
-    .orderBy(nameOrder, asc(contacts.id))
-    .limit(pageSize)
-    .offset((shownPage - 1) * pageSize);
+    const rows = await db
+      .select(listItemColumns)
+      .from(contacts)
+      .where(match)
+      .orderBy(nameOrder, asc(contacts.id))
+      .limit(pageSize)
+      .offset((shownPage - 1) * pageSize);
 
-  return { contacts: rows, ...counts, page: shownPage, pageCount };
+    return { contacts: rows, ...counts, page: shownPage, pageCount };
+  });
 }
 
 // The page where a contact stands in the whole list (no search), or null if it is gone.
 export async function findContactPage(id: number, pageSize: number): Promise<number | null> {
-  const [target] = await db
-    .select({ name: contacts.name })
-    .from(contacts)
-    .where(eq(contacts.id, id))
-    .limit(1);
-  if (!target) return null;
+  return runQuery("findContactPage", async (db) => {
+    const [target] = await db
+      .select({ name: contacts.name })
+      .from(contacts)
+      .where(eq(contacts.id, id))
+      .limit(1);
+    if (!target) return null;
 
-  // Contacts before it in the list order: (name, id) compared as a pair.
-  const before = await db.$count(
-    contacts,
-    sql`(${nameOrder}, ${contacts.id}) < (${target.name}::text collate "ru-RU-x-icu", ${id}::integer)`,
-  );
-  return Math.floor(before / pageSize) + 1;
+    // Contacts before it in the list order: (name, id) compared as a pair.
+    const before = await db.$count(
+      contacts,
+      sql`(${nameOrder}, ${contacts.id}) < (${target.name}::text collate "ru-RU-x-icu", ${id}::integer)`,
+    );
+    return Math.floor(before / pageSize) + 1;
+  });
 }
 
 // Deduplicated per request: the page and its metadata both read the same contact.
 export const getContact = cache(async (id: number) => {
-  const [contact] = await db
-    .select()
-    .from(contacts)
-    .where(eq(contacts.id, id))
-    .limit(1);
+  const [contact] = await runQuery("getContact", (db) =>
+    db.select().from(contacts).where(eq(contacts.id, id)).limit(1),
+  );
   return contact ?? null;
 });
