@@ -6,12 +6,7 @@ import { useState } from "react";
 import { DeleteContactButton } from "@/components/delete-contact-button";
 import { EditContactDialog } from "@/components/edit-contact-dialog";
 import { Button } from "@/components/ui/button";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import type { ContactFormInitialValues } from "@/lib/contact-schema";
 import type { ContactGroup } from "@/lib/groups";
 import { cn } from "@/lib/utils";

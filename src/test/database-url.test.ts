@@ -21,12 +21,8 @@ describe("toTestDatabaseUrl", () => {
   });
 
   it("refuses an address without a database name", () => {
-    expect(() => toTestDatabaseUrl("postgres://u:p@127.0.0.1:5432")).toThrow(
-      "database name",
-    );
-    expect(() => toTestDatabaseUrl("postgres://u:p@127.0.0.1:5432/")).toThrow(
-      "database name",
-    );
+    expect(() => toTestDatabaseUrl("postgres://u:p@127.0.0.1:5432")).toThrow("database name");
+    expect(() => toTestDatabaseUrl("postgres://u:p@127.0.0.1:5432/")).toThrow("database name");
   });
 });
 

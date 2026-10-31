@@ -6,13 +6,7 @@ import { contactGroups, contacts } from "@/db/schema";
 import { addContact, addGroup, addToGroups } from "@/test/factories";
 import { resetDatabase } from "@/test/reset-database";
 
-import {
-  createGroup,
-  deleteGroup,
-  listContactGroups,
-  listGroups,
-  renameGroup,
-} from "./groups";
+import { createGroup, deleteGroup, listContactGroups, listGroups, renameGroup } from "./groups";
 
 const names = (items: { name: string }[]) => items.map((item) => item.name);
 
@@ -64,9 +58,7 @@ describe("groups", () => {
 
       expect((await renameGroup(analysts.id, "Коллеги")).status).toBe("renamed");
 
-      expect(await listGroups()).toEqual([
-        { id: analysts.id, name: "Коллеги", contactCount: 2 },
-      ]);
+      expect(await listGroups()).toEqual([{ id: analysts.id, name: "Коллеги", contactCount: 2 }]);
       expect(await contactGroupNames(anna.id)).toEqual(["Коллеги"]);
     });
 

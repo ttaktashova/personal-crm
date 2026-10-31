@@ -12,9 +12,7 @@ import {
 // Rows for tests. They write straight to the tables, so a test of a function does not
 // depend on another function of the app to set itself up.
 
-export async function addContact(
-  values: Partial<NewContact> & { name: string },
-): Promise<Contact> {
+export async function addContact(values: Partial<NewContact> & { name: string }): Promise<Contact> {
   const [contact] = await runQuery("addContact", (db) =>
     db.insert(contacts).values(values).returning(),
   );
@@ -24,7 +22,10 @@ export async function addContact(
 export async function addContacts(names: string[]): Promise<Contact[]> {
   if (names.length === 0) return [];
   return runQuery("addContacts", (db) =>
-    db.insert(contacts).values(names.map((name) => ({ name }))).returning(),
+    db
+      .insert(contacts)
+      .values(names.map((name) => ({ name })))
+      .returning(),
   );
 }
 

@@ -25,12 +25,8 @@ export const contacts = pgTable("contacts", {
   email: text("email").notNull().default(""),
   notes: text("notes").notNull().default(""),
   contactFrequency: contactFrequency("contact_frequency"),
-  createdAt: timestamp("created_at", { withTimezone: true })
-    .notNull()
-    .defaultNow(),
-  updatedAt: timestamp("updated_at", { withTimezone: true })
-    .notNull()
-    .defaultNow(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
 export type Contact = typeof contacts.$inferSelect;
@@ -48,9 +44,7 @@ export const interactions = pgTable(
     occurredOn: date("occurred_on", { mode: "string" }).notNull(),
     // Stored as shown, including the default text.
     summary: text("summary").notNull(),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
     // The card reads one contact's records newest first. NULLS FIRST is what a plain
@@ -73,9 +67,7 @@ export const groups = pgTable(
     id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
     // As typed, without spaces at the edges.
     name: text("name").notNull(),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
     // Names are unique without case and with "ё" as "е": the same rules as the search.

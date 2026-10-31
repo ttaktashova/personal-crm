@@ -1,13 +1,6 @@
 "use client";
 
-import {
-  ArrowLeftIcon,
-  Loader2Icon,
-  PencilIcon,
-  TagsIcon,
-  Trash2Icon,
-  XIcon,
-} from "lucide-react";
+import { ArrowLeftIcon, Loader2Icon, PencilIcon, TagsIcon, Trash2Icon, XIcon } from "lucide-react";
 import {
   useEffect,
   useId,
@@ -20,20 +13,10 @@ import { toast } from "sonner";
 
 import { createGroup, deleteGroup, renameGroup } from "@/app/contacts/group-actions";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogClose,
-  DialogContent,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Dialog, DialogClose, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Field, FieldError, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { formatContactCount } from "@/lib/format";
 import { groupNameSchema } from "@/lib/group-schema";
 import type { GroupItem } from "@/lib/groups";
@@ -439,7 +422,9 @@ function ConfirmDeleteView({
         onGroupsChange(result.groups);
         onDone();
       } catch {
-        toast.error("Не удалось удалить. Проверьте, что приложение запущено, и попробуйте ещё раз.");
+        toast.error(
+          "Не удалось удалить. Проверьте, что приложение запущено, и попробуйте ещё раз.",
+        );
       }
     });
   }
@@ -452,7 +437,12 @@ function ConfirmDeleteView({
       aria-describedby={descriptionId}
       className="flex min-h-0 flex-col"
     >
-      <ViewHeader title="Удалить группу?" titleId={titleId} isPending={isPending} focusTitle={false} />
+      <ViewHeader
+        title="Удалить группу?"
+        titleId={titleId}
+        isPending={isPending}
+        focusTitle={false}
+      />
       <div className="-mx-1.5 min-h-0 overflow-y-auto px-1.5 pb-1.5">
         <p
           id={descriptionId}
@@ -461,13 +451,7 @@ function ConfirmDeleteView({
           Группа «{group.name}» удалится. Люди из неё останутся, у них пропадёт только эта группа.
         </p>
         <div className="mt-6 flex flex-col gap-2.5 sm:flex-row sm:justify-end sm:gap-3">
-          <Button
-            ref={cancelRef}
-            variant="outline"
-            size="lg"
-            disabled={isPending}
-            onClick={onDone}
-          >
+          <Button ref={cancelRef} variant="outline" size="lg" disabled={isPending} onClick={onDone}>
             Отмена
           </Button>
           <Button variant="destructive" size="lg" disabled={isPending} onClick={handleDelete}>

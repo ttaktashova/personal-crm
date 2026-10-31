@@ -18,11 +18,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { readListHref } from "@/lib/list-return";
 
 export function DeleteContactButton({
@@ -56,7 +52,9 @@ export function DeleteContactButton({
         // Replace, not push: Back must not lead to the deleted contact.
         router.replace(readListHref());
       } catch {
-        toast.error("Не удалось удалить. Проверьте, что приложение запущено, и попробуйте ещё раз.");
+        toast.error(
+          "Не удалось удалить. Проверьте, что приложение запущено, и попробуйте ещё раз.",
+        );
       }
     });
   }
@@ -94,8 +92,7 @@ export function DeleteContactButton({
         <AlertDialogHeader>
           <AlertDialogTitle>Удалить контакт?</AlertDialogTitle>
           <AlertDialogDescription>
-            Контакт «{name}», заметки и история мести удалятся насовсем.
-            Вернуть их будет нельзя.
+            Контакт «{name}», заметки и история мести удалятся насовсем. Вернуть их будет нельзя.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>

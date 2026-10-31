@@ -119,9 +119,7 @@ export async function updateInteraction(
 
 export type DeleteInteractionResult = { status: "deleted" } | { status: "not-found" };
 
-export async function deleteInteraction(
-  interactionId: unknown,
-): Promise<DeleteInteractionResult> {
+export async function deleteInteraction(interactionId: unknown): Promise<DeleteInteractionResult> {
   const id = parseId(interactionId);
   if (id === null) {
     return { status: "not-found" };

@@ -58,9 +58,7 @@ export function InteractionForm(props: InteractionFormProps) {
   function focusFirstInvalid(fieldErrors: InteractionFieldErrors) {
     const firstField = Object.keys(fieldErrors)[0];
     if (firstField) {
-      formRef.current
-        ?.querySelector<HTMLElement>(`[name="${firstField}"]`)
-        ?.focus();
+      formRef.current?.querySelector<HTMLElement>(`[name="${firstField}"]`)?.focus();
     }
   }
 
@@ -106,7 +104,9 @@ export function InteractionForm(props: InteractionFormProps) {
         setErrors({});
         props.onSaved();
       } catch {
-        toast.error("Не удалось сохранить. Проверьте, что приложение запущено, и попробуйте ещё раз.");
+        toast.error(
+          "Не удалось сохранить. Проверьте, что приложение запущено, и попробуйте ещё раз.",
+        );
       }
     });
   }

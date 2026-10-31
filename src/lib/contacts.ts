@@ -71,10 +71,7 @@ export async function listContactsPage({
               .select({ one: sql`1` })
               .from(contactGroups)
               .where(
-                and(
-                  eq(contactGroups.contactId, contacts.id),
-                  eq(contactGroups.groupId, groupId),
-                ),
+                and(eq(contactGroups.contactId, contacts.id), eq(contactGroups.groupId, groupId)),
               ),
           );
 

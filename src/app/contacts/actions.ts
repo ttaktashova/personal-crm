@@ -5,11 +5,7 @@ import { revalidatePath } from "next/cache";
 
 import { runQuery } from "@/db";
 import { contacts } from "@/db/schema";
-import {
-  contactInputSchema,
-  toFieldErrors,
-  type ContactFieldErrors,
-} from "@/lib/contact-schema";
+import { contactInputSchema, toFieldErrors, type ContactFieldErrors } from "@/lib/contact-schema";
 import { insertContact, updateContactById } from "@/lib/contacts";
 import { parseId } from "@/lib/ids";
 
@@ -30,10 +26,7 @@ export async function createContact(input: unknown): Promise<SaveContactResult> 
   return { status: "saved", id: created.id };
 }
 
-export async function updateContact(
-  id: unknown,
-  input: unknown,
-): Promise<SaveContactResult> {
+export async function updateContact(id: unknown, input: unknown): Promise<SaveContactResult> {
   const contactId = parseId(id);
   if (contactId === null) {
     return { status: "not-found" };

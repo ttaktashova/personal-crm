@@ -34,8 +34,7 @@ function checkName(input: unknown): { name: string } | { error: string } {
 const DUPLICATE_NAME_MESSAGE = "Такая группа уже есть";
 
 export type CreateGroupResult =
-  | { status: "saved"; groups: GroupItem[] }
-  | { status: "invalid"; fieldErrors: GroupFieldErrors };
+  { status: "saved"; groups: GroupItem[] } | { status: "invalid"; fieldErrors: GroupFieldErrors };
 
 export async function createGroup(input: unknown): Promise<CreateGroupResult> {
   const checked = checkName(input);
@@ -80,8 +79,7 @@ export async function renameGroup(id: unknown, input: unknown): Promise<RenameGr
 }
 
 export type DeleteGroupResult =
-  | { status: "deleted"; groups: GroupItem[] }
-  | { status: "not-found"; groups: GroupItem[] };
+  { status: "deleted"; groups: GroupItem[] } | { status: "not-found"; groups: GroupItem[] };
 
 export async function deleteGroup(id: unknown): Promise<DeleteGroupResult> {
   const groupId = parseId(id);

@@ -28,9 +28,7 @@ const FIELD_ROW_CLASS =
   "border-b py-3.5 last:border-b-0 sm:grid sm:grid-cols-[--spacing(50)_minmax(0,1fr)] sm:gap-4 sm:py-4";
 const FIELD_LABEL_CLASS = "text-sm text-muted-foreground sm:text-ui";
 
-export async function generateMetadata({
-  params,
-}: PageProps<"/contacts/[id]">): Promise<Metadata> {
+export async function generateMetadata({ params }: PageProps<"/contacts/[id]">): Promise<Metadata> {
   const id = parseId((await params).id);
   const contact = id === null ? null : await getContact(id);
   return { title: contact?.name ?? "Контакт не найден" };
@@ -49,9 +47,7 @@ export default function ContactPage({ params }: PageProps<"/contacts/[id]">) {
   );
 }
 
-async function ContactCard({
-  params,
-}: Pick<PageProps<"/contacts/[id]">, "params">) {
+async function ContactCard({ params }: Pick<PageProps<"/contacts/[id]">, "params">) {
   const id = parseId((await params).id);
   if (id === null) notFound();
 
@@ -65,19 +61,14 @@ async function ContactCard({
   const contactGroups = groupsByContact.get(id) ?? [];
 
   const wasEdited =
-    contact.updatedAt.getTime() - contact.createdAt.getTime() >
-    EDIT_NOTICE_THRESHOLD_MS;
+    contact.updatedAt.getTime() - contact.createdAt.getTime() > EDIT_NOTICE_THRESHOLD_MS;
   // Records come newest first, so the first one is the last revenge.
   const lastInteraction = interactions.at(0);
 
   return (
     <>
       <header className={HEADER_CLASS}>
-        <ContactAvatar
-          name={contact.name}
-          tone="accent"
-          className="size-14 text-lg"
-        />
+        <ContactAvatar name={contact.name} tone="accent" className="size-14 text-lg" />
         <div className={TITLE_ROW_CLASS}>
           <h1 className="w-full font-display text-2xl leading-tight break-words sm:w-auto sm:min-w-0 sm:text-3xl">
             {contact.name}

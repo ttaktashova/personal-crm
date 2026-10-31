@@ -20,9 +20,7 @@ const CHIP_CLASS =
 // the window for managing the groups. A group is a plain link to the list with ?group=,
 // so Back, a copied address and a bookmark all keep the group. The search and the page size
 // stay when the group changes; the page goes back to the first one.
-export async function GroupFilter({
-  searchParams,
-}: Pick<PageProps<"/">, "searchParams">) {
+export async function GroupFilter({ searchParams }: Pick<PageProps<"/">, "searchParams">) {
   const params = await searchParams;
   const cookieStore = await cookies();
 

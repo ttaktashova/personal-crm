@@ -1,12 +1,6 @@
 "use client";
 
-import {
-  ArrowLeftIcon,
-  Loader2Icon,
-  PencilIcon,
-  Trash2Icon,
-  XIcon,
-} from "lucide-react";
+import { ArrowLeftIcon, Loader2Icon, PencilIcon, Trash2Icon, XIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import {
   useEffect,
@@ -21,18 +15,8 @@ import { toast } from "sonner";
 import { deleteInteraction } from "@/app/contacts/interaction-actions";
 import { InteractionForm } from "@/components/interaction-form";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogClose,
-  DialogContent,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+import { Dialog, DialogClose, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { formatShortDate } from "@/lib/format";
 import type { InteractionItem } from "@/lib/interactions";
 
@@ -150,13 +134,7 @@ function HistoryViews({
         </FormView>
       );
     case "confirm-delete":
-      return (
-        <ConfirmDeleteView
-          interaction={view.interaction}
-          {...viewProps}
-          onDone={showList}
-        />
-      );
+      return <ConfirmDeleteView interaction={view.interaction} {...viewProps} onDone={showList} />;
   }
 }
 
@@ -363,7 +341,9 @@ function ConfirmDeleteView({
         }
         onDone();
       } catch {
-        toast.error("Не удалось удалить. Проверьте, что приложение запущено, и попробуйте ещё раз.");
+        toast.error(
+          "Не удалось удалить. Проверьте, что приложение запущено, и попробуйте ещё раз.",
+        );
       }
     });
   }
@@ -376,12 +356,15 @@ function ConfirmDeleteView({
       aria-describedby={descriptionId}
       className="flex min-h-0 flex-col"
     >
-      <ViewHeader title="Удалить запись?" titleId={titleId} isPending={isPending} focusTitle={false} />
+      <ViewHeader
+        title="Удалить запись?"
+        titleId={titleId}
+        isPending={isPending}
+        focusTitle={false}
+      />
       <div className="-mx-1.5 min-h-0 overflow-y-auto px-1.5 pb-1.5">
         <div className="mt-3 rounded-xl border border-border-strong bg-card px-3.5 py-3 text-ui sm:mt-4">
-          <span className="block font-semibold text-foreground tabular-nums sm:inline">
-            {date}
-          </span>{" "}
+          <span className="block font-semibold text-foreground tabular-nums sm:inline">{date}</span>{" "}
           <span className="mt-0.5 block break-words whitespace-pre-wrap text-card-foreground sm:mt-0 sm:inline">
             {interaction.summary}
           </span>
@@ -390,13 +373,7 @@ function ConfirmDeleteView({
           Запись от {date} удалится насовсем.
         </p>
         <div className="mt-6 flex flex-col gap-2.5 sm:flex-row sm:justify-end sm:gap-3">
-          <Button
-            ref={cancelRef}
-            variant="outline"
-            size="lg"
-            disabled={isPending}
-            onClick={onDone}
-          >
+          <Button ref={cancelRef} variant="outline" size="lg" disabled={isPending} onClick={onDone}>
             Отмена
           </Button>
           <Button variant="destructive" size="lg" disabled={isPending} onClick={handleDelete}>

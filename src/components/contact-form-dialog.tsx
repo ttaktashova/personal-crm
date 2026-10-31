@@ -5,12 +5,7 @@ import { useRef, useTransition } from "react";
 
 import { ContactForm, type ContactFormTarget } from "@/components/contact-form";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogClose,
-  DialogContent,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Dialog, DialogClose, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import type { ContactGroup } from "@/lib/groups";
 
 // One shell for "Новый чертила" and "Редактировать контакт", so both windows
@@ -47,9 +42,7 @@ export function ContactFormDialog({
         ref={popupRef}
         showCloseButton={false}
         // Base UI would focus the first tabbable element, which is the close button.
-        initialFocus={() =>
-          popupRef.current?.querySelector<HTMLElement>('[name="name"]') ?? true
-        }
+        initialFocus={() => popupRef.current?.querySelector<HTMLElement>('[name="name"]') ?? true}
         className="max-w-135 gap-3 border-border-strong bg-muted px-4 py-5 sm:p-6"
       >
         <div className="flex items-center justify-between gap-3">

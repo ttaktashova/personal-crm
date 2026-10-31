@@ -3,13 +3,7 @@
 import { ChevronRightIcon, SearchIcon, XIcon } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import {
-  useEffect,
-  useEffectEvent,
-  useRef,
-  useState,
-  useTransition,
-} from "react";
+import { useEffect, useEffectEvent, useRef, useState, useTransition } from "react";
 
 import { CatConfused } from "@/components/cat-confused";
 import { ContactAvatar } from "@/components/contact-avatar";
@@ -116,9 +110,7 @@ export function ContactDirectory({
 
   useEffect(() => {
     if (highlightId !== null) {
-      document
-        .getElementById(`contact-${highlightId}`)
-        ?.scrollIntoView({ block: "center" });
+      document.getElementById(`contact-${highlightId}`)?.scrollIntoView({ block: "center" });
     }
   }, [highlightId]);
 
@@ -178,9 +170,7 @@ export function ContactDirectory({
   if (group && totalCount === 0) {
     return (
       <div className="rounded-card border bg-card px-6 py-16 text-center">
-        <p className="font-display text-xl break-words">
-          В группе «{group.name}» пока никого нет
-        </p>
+        <p className="font-display text-xl break-words">В группе «{group.name}» пока никого нет</p>
         <p className="mt-1 text-sm text-muted-foreground">
           Добавьте человека в группу в окне «Редактировать контакт».
         </p>
@@ -189,9 +179,7 @@ export function ContactDirectory({
   }
 
   const isSearching = query !== "";
-  const groups = isSearching
-    ? [{ letter: "", contacts }]
-    : groupByLetter(contacts);
+  const groups = isSearching ? [{ letter: "", contacts }] : groupByLetter(contacts);
 
   return (
     <div ref={topRef}>
@@ -219,11 +207,7 @@ export function ContactDirectory({
             />
             {inputValue && (
               <InputGroupAddon align="inline-end">
-                <InputGroupButton
-                  size="icon-xs"
-                  onClick={clearSearch}
-                  aria-label="Очистить поиск"
-                >
+                <InputGroupButton size="icon-xs" onClick={clearSearch} aria-label="Очистить поиск">
                   <XIcon />
                 </InputGroupButton>
               </InputGroupAddon>
@@ -256,8 +240,7 @@ export function ContactDirectory({
             <CatConfused />
             <p className="mt-4 font-display text-xl">Никого не нашли</p>
             <p className="mt-1 text-sm text-muted-foreground">
-              По запросу «{query}» контактов нет. Проверьте имя или добавьте
-              нового человека.
+              По запросу «{query}» контактов нет. Проверьте имя или добавьте нового человека.
             </p>
           </div>
         ) : (
@@ -308,7 +291,11 @@ function GroupBadges({ groups }: { groups: ContactListItem["groups"] }) {
       {visible.map((group) => (
         <li key={group.id} className="flex min-w-0 shrink">
           {/* The badge does not shrink by default; here a long name has to give way. */}
-          <Badge variant="outline" title={group.name} className="max-w-40 min-w-0 shrink! text-caption">
+          <Badge
+            variant="outline"
+            title={group.name}
+            className="max-w-40 min-w-0 shrink! text-caption"
+          >
             <span className="truncate">{group.name}</span>
           </Badge>
         </li>
@@ -330,13 +317,7 @@ function GroupBadges({ groups }: { groups: ContactListItem["groups"] }) {
   );
 }
 
-function ContactRow({
-  contact,
-  isNew,
-}: {
-  contact: ContactListItem;
-  isNew: boolean;
-}) {
+function ContactRow({ contact, isNew }: { contact: ContactListItem; isNew: boolean }) {
   return (
     <li id={`contact-${contact.id}`}>
       <Link
@@ -351,31 +332,21 @@ function ContactRow({
           <div className="flex items-center gap-2">
             <span className="truncate font-semibold">{contact.name}</span>
             {isNew && (
-              <Badge
-                variant="outline"
-                className="border-primary bg-transparent text-primary"
-              >
+              <Badge variant="outline" className="border-primary bg-transparent text-primary">
                 Новый
               </Badge>
             )}
           </div>
           {contact.howWeMet && (
-            <p className="truncate text-sm text-muted-foreground">
-              {contact.howWeMet}
-            </p>
+            <p className="truncate text-sm text-muted-foreground">{contact.howWeMet}</p>
           )}
           <GroupBadges groups={contact.groups} />
         </div>
         <div className="hidden shrink-0 text-right text-sm text-muted-foreground sm:block">
           {contact.phone && <p className="tabular-nums">{contact.phone}</p>}
-          {contact.email && (
-            <p className="max-w-60 truncate">{contact.email}</p>
-          )}
+          {contact.email && <p className="max-w-60 truncate">{contact.email}</p>}
         </div>
-        <ChevronRightIcon
-          aria-hidden
-          className="size-4 shrink-0 text-muted-foreground"
-        />
+        <ChevronRightIcon aria-hidden className="size-4 shrink-0 text-muted-foreground" />
       </Link>
     </li>
   );

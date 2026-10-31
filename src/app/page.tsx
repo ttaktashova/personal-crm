@@ -65,9 +65,7 @@ async function NewContact() {
 
 // Reads the database on every request, so another browser sees the same, fresh list.
 // Only one page goes to the browser: ?group=, ?page=, ?q= and ?size= pick which one.
-async function Directory({
-  searchParams,
-}: Pick<PageProps<"/">, "searchParams">) {
+async function Directory({ searchParams }: Pick<PageProps<"/">, "searchParams">) {
   const params = await searchParams;
   const cookieStore = await cookies();
 

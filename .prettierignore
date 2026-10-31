@@ -1,0 +1,12 @@
+# Files in .gitignore are skipped too.
+
+# Generated: by pnpm and by drizzle-kit
+pnpm-lock.yaml
+drizzle/
+
+# Docs, not code: specs, OpenSpec changes, agent instructions
+*.md
+*.html
+specs/
+openspec/
+.claude/

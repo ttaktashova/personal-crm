@@ -67,8 +67,7 @@ const FREQUENCY_ITEMS = [
 ];
 
 export type ContactFormTarget =
-  | { mode: "create" }
-  | { mode: "edit"; contactId: number; initialValues: ContactFormInitialValues };
+  { mode: "create" } | { mode: "edit"; contactId: number; initialValues: ContactFormInitialValues };
 
 type ContactFormProps = ContactFormTarget & {
   // All the groups there are: the field "Группы" chooses from them.
@@ -94,9 +93,7 @@ export function ContactForm(props: ContactFormProps) {
   function focusFirstInvalid(fieldErrors: ContactFieldErrors) {
     const firstField = Object.keys(fieldErrors)[0];
     if (firstField) {
-      formRef.current
-        ?.querySelector<HTMLElement>(`[name="${firstField}"]`)
-        ?.focus();
+      formRef.current?.querySelector<HTMLElement>(`[name="${firstField}"]`)?.focus();
     }
   }
 
@@ -135,13 +132,13 @@ export function ContactForm(props: ContactFormProps) {
 
         setErrors({});
         toast.success(
-          props.mode === "create"
-            ? `Контакт «${check.data.name}» добавлен`
-            : "Изменения сохранены",
+          props.mode === "create" ? `Контакт «${check.data.name}» добавлен` : "Изменения сохранены",
         );
         props.onSaved(result.id);
       } catch {
-        toast.error("Не удалось сохранить. Проверьте, что приложение запущено, и попробуйте ещё раз.");
+        toast.error(
+          "Не удалось сохранить. Проверьте, что приложение запущено, и попробуйте ещё раз.",
+        );
       }
     });
   }

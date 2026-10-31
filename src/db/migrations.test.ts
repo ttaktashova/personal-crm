@@ -22,7 +22,9 @@ const folders: string[] = [];
 
 afterEach(async () => {
   await Promise.all(databases.splice(0).map((database) => database.drop()));
-  await Promise.all(folders.splice(0).map((folder) => rm(folder, { recursive: true, force: true })));
+  await Promise.all(
+    folders.splice(0).map((folder) => rm(folder, { recursive: true, force: true })),
+  );
 });
 
 async function applyMigrations(url: string, migrationsFolder: string) {
@@ -73,7 +75,10 @@ describe("migrations", () => {
     const groups = await query<{ name: string }>(url, "select name from groups");
     expect(groups.map((group) => group.name).sort()).toEqual(STARTING_GROUPS);
 
-    const [links] = await query<{ count: number }>(url, "select count(*)::int as count from contact_groups");
+    const [links] = await query<{ count: number }>(
+      url,
+      "select count(*)::int as count from contact_groups",
+    );
     expect(links.count).toBe(0);
   });
 
@@ -94,7 +99,10 @@ describe("migrations", () => {
     await applyMigrations(url, allMigrations);
 
     expect(await query(url, "select * from contacts order by id")).toEqual(before);
-    const [links] = await query<{ count: number }>(url, "select count(*)::int as count from contact_groups");
+    const [links] = await query<{ count: number }>(
+      url,
+      "select count(*)::int as count from contact_groups",
+    );
     expect(links.count).toBe(0);
   });
 });

@@ -30,7 +30,10 @@ export function suggestCreation(groups: { name: string }[], text: string): Creat
 
   const checked = groupNameSchema.safeParse(typed);
   if (!checked.success) {
-    return { kind: "error", message: checked.error.issues[0]?.message ?? "Проверьте название группы" };
+    return {
+      kind: "error",
+      message: checked.error.issues[0]?.message ?? "Проверьте название группы",
+    };
   }
   return { kind: "create", name: checked.data };
 }

@@ -131,9 +131,7 @@ export async function createGroup(name: string): Promise<CreateGroupResult> {
 }
 
 export type RenameGroupResult =
-  | { status: "renamed" }
-  | { status: "duplicate" }
-  | { status: "not-found" };
+  { status: "renamed" } | { status: "duplicate" } | { status: "not-found" };
 
 // People stay in the group, and their "изменён" date does not move: only the group row changes.
 export async function renameGroup(id: number, name: string): Promise<RenameGroupResult> {
