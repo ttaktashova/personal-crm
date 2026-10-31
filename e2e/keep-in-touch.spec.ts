@@ -272,18 +272,31 @@ test("the block shows five, the rest on demand, and only the chosen group", asyn
     await expectDueLabel(page, "Лев Тихонов", "Раз в неделю · пора сегодня");
   });
 
+  // Each group below is chosen with the block opened in full: a new group starts
+  // with the first five again.
+
   await test.step("«Друзья»: five of eight, «+ещё 3 людишки»", async () => {
-    // A fresh page: the list opened above stays open when a group is chosen.
-    await page.goto("/");
     await groups.getByRole("link", { name: "Друзья" }).click();
     await expectDue(page, DUE_NAMES.slice(0, 5));
     await expect(showMore(page)).toHaveText("+ещё 3 людишки");
   });
 
   await test.step("«Соседи»: five of six, «+ещё 1 людишка»", async () => {
+    await showMore(page).click();
+    await expectDue(page, DUE_NAMES.slice(0, 8));
+
     await groups.getByRole("link", { name: "Соседи" }).click();
     await expectDue(page, neighbours);
     await expect(showMore(page)).toHaveText("+ещё 1 людишка");
+  });
+
+  await test.step("«Все» after a group: five of twelve again", async () => {
+    await showMore(page).click();
+    await expectDue(page, [...neighbours, "Лев Тихонов"]);
+
+    await groups.getByRole("link", { name: "Все" }).click();
+    await expectDue(page, DUE_NAMES.slice(0, 5));
+    await expect(showMore(page)).toHaveText("+ещё 7 людишек");
   });
 
   await test.step("«Семья»: all five, no «+ещё»", async () => {

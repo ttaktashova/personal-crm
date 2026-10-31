@@ -37,5 +37,6 @@ export async function DueContacts({ searchParams }: Pick<PageProps<"/">, "search
     frequency: formatContactFrequency(contact.contactFrequency),
     due: contact.dueOn === null ? "ещё не мстили" : formatDueLabel(contact.dueOn, today),
   }));
-  return <DueContactsList contacts={items} />;
+  // Keyed by the group: another group starts a new list, showing the first five again.
+  return <DueContactsList key={groupId ?? "all"} contacts={items} />;
 }
