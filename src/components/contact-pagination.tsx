@@ -24,7 +24,8 @@ const LAYOUTS = [
 // 44×44 on a phone, 40×40 on a computer.
 const ITEM_SIZE = "size-11 sm:size-10";
 
-// Under the list. Not shown when everything fits on one page.
+// Above the list, in the row of the counter and "По: …": `className` places it there.
+// No "Страница … из …": the current page is marked. Not shown when everything fits on one page.
 export function ContactPagination({
   group,
   page,
@@ -32,6 +33,7 @@ export function ContactPagination({
   query,
   pageSize,
   onNavigate,
+  className,
 }: {
   group: number | null;
   page: number;
@@ -39,62 +41,56 @@ export function ContactPagination({
   query: string;
   pageSize: PageSize;
   onNavigate: (href: string) => void;
+  className?: string;
 }) {
   if (pageCount <= 1) return null;
 
   return (
-    <div className="mt-6 flex flex-col items-center gap-2">
-      <Pagination aria-label="Страницы списка">
-        {LAYOUTS.map(({ siblings, className }) => (
-          <PaginationContent key={siblings} className={cn("gap-1", className)}>
-            <PaginationItem>
-              <Arrow
-                label="Предыдущая страница"
-                href={
-                  page > 1
-                    ? buildListHref({ group, q: query, page: page - 1, size: pageSize })
-                    : null
-                }
-                onNavigate={onNavigate}
-              >
-                <ChevronLeftIcon />
-              </Arrow>
+    <Pagination aria-label="Страницы списка" className={className}>
+      {LAYOUTS.map(({ siblings, className }) => (
+        <PaginationContent key={siblings} className={cn("gap-1", className)}>
+          <PaginationItem>
+            <Arrow
+              label="Предыдущая страница"
+              href={
+                page > 1 ? buildListHref({ group, q: query, page: page - 1, size: pageSize }) : null
+              }
+              onNavigate={onNavigate}
+            >
+              <ChevronLeftIcon />
+            </Arrow>
+          </PaginationItem>
+          {getPageItems(page, pageCount, siblings).map((item, index) => (
+            <PaginationItem key={item === "ellipsis" ? `ellipsis-${index}` : item}>
+              {item === "ellipsis" ? (
+                <PaginationEllipsis className={ITEM_SIZE} />
+              ) : (
+                <PageLink
+                  href={buildListHref({ group, q: query, page: item, size: pageSize })}
+                  isActive={item === page}
+                  onNavigate={onNavigate}
+                >
+                  {item}
+                </PageLink>
+              )}
             </PaginationItem>
-            {getPageItems(page, pageCount, siblings).map((item, index) => (
-              <PaginationItem key={item === "ellipsis" ? `ellipsis-${index}` : item}>
-                {item === "ellipsis" ? (
-                  <PaginationEllipsis className={ITEM_SIZE} />
-                ) : (
-                  <PageLink
-                    href={buildListHref({ group, q: query, page: item, size: pageSize })}
-                    isActive={item === page}
-                    onNavigate={onNavigate}
-                  >
-                    {item}
-                  </PageLink>
-                )}
-              </PaginationItem>
-            ))}
-            <PaginationItem>
-              <Arrow
-                label="Следующая страница"
-                href={
-                  page < pageCount
-                    ? buildListHref({ group, q: query, page: page + 1, size: pageSize })
-                    : null
-                }
-                onNavigate={onNavigate}
-              >
-                <ChevronRightIcon />
-              </Arrow>
-            </PaginationItem>
-          </PaginationContent>
-        ))}
-      </Pagination>
-      <p className="text-sm text-muted-foreground">
-        Страница {page} из {pageCount}
-      </p>
-    </div>
+          ))}
+          <PaginationItem>
+            <Arrow
+              label="Следующая страница"
+              href={
+                page < pageCount
+                  ? buildListHref({ group, q: query, page: page + 1, size: pageSize })
+                  : null
+              }
+              onNavigate={onNavigate}
+            >
+              <ChevronRightIcon />
+            </Arrow>
+          </PaginationItem>
+        </PaginationContent>
+      ))}
+    </Pagination>
   );
 }
 

@@ -214,12 +214,23 @@ export function ContactDirectory({
             )}
           </InputGroup>
         </form>
-        <div className="mt-2 flex items-center justify-between gap-3 px-1">
+        {/* From 768px one row: the counter, then the switcher right before "По: …".
+            Narrower, the row does not fit, so the switcher goes to a row of its own. */}
+        <div className="mt-2 flex flex-wrap items-center justify-between gap-x-3 gap-y-2 px-1">
           <p className="text-sm text-muted-foreground" aria-live="polite">
             {isSearching
               ? `Найдено: ${matchedCount} из ${totalCount}`
               : formatContactCount(totalCount)}
           </p>
+          <ContactPagination
+            group={groupId}
+            page={page}
+            pageCount={pageCount}
+            query={query}
+            pageSize={pageSize}
+            onNavigate={showPage}
+            className="order-last md:order-none md:mr-0 md:ml-auto md:w-auto"
+          />
           <PageSizePicker
             group={groupId}
             page={page}
@@ -244,36 +255,26 @@ export function ContactDirectory({
             </p>
           </div>
         ) : (
-          <>
-            <div className="flex flex-col gap-5">
-              {groups.map((group, index) => (
-                <section key={`${group.letter}-${index}`}>
-                  {group.letter && (
-                    <h2 className="px-1 pb-2 font-display text-lg leading-none text-primary">
-                      {group.letter}
-                    </h2>
-                  )}
-                  <ul className="divide-y overflow-hidden rounded-card border bg-card">
-                    {group.contacts.map((contact) => (
-                      <ContactRow
-                        key={contact.id}
-                        contact={contact}
-                        isNew={contact.id === highlightId}
-                      />
-                    ))}
-                  </ul>
-                </section>
-              ))}
-            </div>
-            <ContactPagination
-              group={groupId}
-              page={page}
-              pageCount={pageCount}
-              query={query}
-              pageSize={pageSize}
-              onNavigate={showPage}
-            />
-          </>
+          <div className="flex flex-col gap-5">
+            {groups.map((group, index) => (
+              <section key={`${group.letter}-${index}`}>
+                {group.letter && (
+                  <h2 className="px-1 pb-2 font-display text-lg leading-none text-primary">
+                    {group.letter}
+                  </h2>
+                )}
+                <ul className="divide-y overflow-hidden rounded-card border bg-card">
+                  {group.contacts.map((contact) => (
+                    <ContactRow
+                      key={contact.id}
+                      contact={contact}
+                      isNew={contact.id === highlightId}
+                    />
+                  ))}
+                </ul>
+              </section>
+            ))}
+          </div>
         )}
       </div>
     </div>

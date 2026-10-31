@@ -42,6 +42,18 @@ async function expectList(page: Page, names: string[]) {
   await expect(rows).toContainText(names);
 }
 
+// The switcher marks the open page and shows the last one. It is there twice,
+// for a computer and for a phone; one of them is hidden.
+async function expectPages(page: Page, current: number, last: number) {
+  const switcher = page.getByRole("navigation", { name: "Страницы списка" });
+  await expect(switcher.locator('[aria-current="page"]').filter({ visible: true })).toHaveText(
+    String(current),
+  );
+  await expect(
+    switcher.getByText(String(last), { exact: true }).filter({ visible: true }),
+  ).toBeVisible();
+}
+
 test.beforeEach(async () => {
   await resetDatabase();
   // Saved in reverse, so the order of the ids is not the alphabet: the list has to sort by name.
@@ -56,7 +68,7 @@ test("main scenario: open the list, add a person, find them, add a note", async 
     await page.goto("/");
     await expect(page.getByText("60 контактов", { exact: true })).toBeVisible();
     await expectList(page, PEOPLE.slice(0, 50));
-    await expect(page.getByText("Страница 1 из 2")).toBeVisible();
+    await expectPages(page, 1, 2);
 
     // The switcher is there twice, for a computer and for a phone; one of them is hidden.
     await page
@@ -66,7 +78,7 @@ test("main scenario: open the list, add a person, find them, add a note", async 
       .click();
     await expect(page).toHaveURL(/\/\?page=2$/);
     await expectList(page, PEOPLE.slice(50));
-    await expect(page.getByText("Страница 2 из 2")).toBeVisible();
+    await expectPages(page, 2, 2);
   });
 
   await test.step("25 or 100 people per page can be chosen instead of 50", async () => {
@@ -78,7 +90,7 @@ test("main scenario: open the list, add a person, find them, add a note", async 
 
     await pageSizes.getByRole("link", { name: "25" }).click();
     await expectList(page, PEOPLE.slice(0, 25));
-    await expect(page.getByText("Страница 1 из 3")).toBeVisible();
+    await expectPages(page, 1, 3);
 
     // Back to 50 for the rest of the scenario.
     await pageSizes.getByRole("link", { name: "50" }).click();
