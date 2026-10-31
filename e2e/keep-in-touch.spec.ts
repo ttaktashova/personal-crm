@@ -99,7 +99,10 @@ async function expectNobodyDue(page: Page) {
   await expect(cat).toHaveAttribute("aria-hidden", "true");
 }
 
+// boundingBox() does not wait: the list under the block streams in a moment later.
 async function expectAbove(upper: Locator, lower: Locator) {
+  await expect(upper).toBeVisible();
+  await expect(lower).toBeVisible();
   const upperBox = await upper.boundingBox();
   const lowerBox = await lower.boundingBox();
   expect(upperBox!.y + upperBox!.height).toBeLessThanOrEqual(lowerBox!.y);
