@@ -5,6 +5,7 @@ import { useRef, useState, type TransitionStartFunction } from "react";
 import { toast } from "sonner";
 
 import { createContact, updateContact } from "@/app/contacts/actions";
+import { GroupPicker, type GroupSelection } from "@/components/group-picker";
 import { Button } from "@/components/ui/button";
 import { Field, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
@@ -24,21 +25,24 @@ import {
 import {
   contactInputSchema,
   toFieldErrors,
+  type ContactField,
   type ContactFieldErrors,
+  type ContactFormInitialValues,
   type ContactFormValues,
-  type ContactInput,
 } from "@/lib/contact-schema";
+import type { ContactGroup } from "@/lib/groups";
 
-const EMPTY_CONTACT: ContactInput = {
+const EMPTY_CONTACT: ContactFormInitialValues = {
   name: "",
   howWeMet: "",
   phone: "",
   email: "",
   notes: "",
   contactFrequency: null,
+  groupIds: [],
 };
 
-function readForm(form: HTMLFormElement): ContactFormValues {
+function readForm(form: HTMLFormElement, groups: GroupSelection): ContactFormValues {
   const data = new FormData(form);
   const text = (field: keyof ContactFormValues) => String(data.get(field) ?? "");
   return {
@@ -49,6 +53,7 @@ function readForm(form: HTMLFormElement): ContactFormValues {
     notes: text("notes"),
     // Checked by the schema: anything but a listed value is rejected.
     contactFrequency: text("contactFrequency") as ContactFormValues["contactFrequency"],
+    ...groups,
   };
 }
 
@@ -63,9 +68,11 @@ const FREQUENCY_ITEMS = [
 
 export type ContactFormTarget =
   | { mode: "create" }
-  | { mode: "edit"; contactId: number; initialValues: ContactInput };
+  | { mode: "edit"; contactId: number; initialValues: ContactFormInitialValues };
 
 type ContactFormProps = ContactFormTarget & {
+  // All the groups there are: the field "Группы" chooses from them.
+  groups: ContactGroup[];
   // The dialog around the form owns the transition, so it can stay open while saving.
   isPending: boolean;
   startTransition: TransitionStartFunction;
@@ -79,6 +86,10 @@ export function ContactForm(props: ContactFormProps) {
   const [errors, setErrors] = useState<ContactFieldErrors>({});
 
   const initialValues = props.mode === "edit" ? props.initialValues : EMPTY_CONTACT;
+  const [groupSelection, setGroupSelection] = useState<GroupSelection>({
+    groupIds: initialValues.groupIds,
+    newGroupNames: [],
+  });
 
   function focusFirstInvalid(fieldErrors: ContactFieldErrors) {
     const firstField = Object.keys(fieldErrors)[0];
@@ -94,7 +105,7 @@ export function ContactForm(props: ContactFormProps) {
     if (isPending) return;
 
     const form = event.currentTarget;
-    const values = readForm(form);
+    const values = readForm(form, groupSelection);
 
     const check = contactInputSchema.safeParse(values);
     if (!check.success) {
@@ -135,7 +146,7 @@ export function ContactForm(props: ContactFormProps) {
     });
   }
 
-  function clearError(field: keyof ContactInput) {
+  function clearError(field: ContactField) {
     if (errors[field]) {
       setErrors((current) => {
         const next = { ...current };
@@ -188,6 +199,21 @@ export function ContactForm(props: ContactFormProps) {
             className="h-11"
           />
           <FieldError>{errors.howWeMet}</FieldError>
+        </Field>
+
+        <Field data-invalid={!!errors.groups}>
+          <FieldLabel htmlFor="groups">Группы</FieldLabel>
+          <GroupPicker
+            id="groups"
+            groups={props.groups}
+            selection={groupSelection}
+            onChange={(selection) => {
+              setGroupSelection(selection);
+              clearError("groups");
+            }}
+            invalid={!!errors.groups}
+          />
+          <FieldError>{errors.groups}</FieldError>
         </Field>
 
         <div className="grid gap-4 sm:grid-cols-2">

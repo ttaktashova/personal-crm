@@ -26,12 +26,14 @@ const ITEM_SIZE = "size-11 sm:size-10";
 
 // Under the list. Not shown when everything fits on one page.
 export function ContactPagination({
+  group,
   page,
   pageCount,
   query,
   pageSize,
   onNavigate,
 }: {
+  group: number | null;
   page: number;
   pageCount: number;
   query: string;
@@ -48,7 +50,11 @@ export function ContactPagination({
             <PaginationItem>
               <Arrow
                 label="Предыдущая страница"
-                href={page > 1 ? buildListHref({ q: query, page: page - 1, size: pageSize }) : null}
+                href={
+                  page > 1
+                    ? buildListHref({ group, q: query, page: page - 1, size: pageSize })
+                    : null
+                }
                 onNavigate={onNavigate}
               >
                 <ChevronLeftIcon />
@@ -60,7 +66,7 @@ export function ContactPagination({
                   <PaginationEllipsis className={ITEM_SIZE} />
                 ) : (
                   <PageLink
-                    href={buildListHref({ q: query, page: item, size: pageSize })}
+                    href={buildListHref({ group, q: query, page: item, size: pageSize })}
                     isActive={item === page}
                     onNavigate={onNavigate}
                   >
@@ -74,7 +80,7 @@ export function ContactPagination({
                 label="Следующая страница"
                 href={
                   page < pageCount
-                    ? buildListHref({ q: query, page: page + 1, size: pageSize })
+                    ? buildListHref({ group, q: query, page: page + 1, size: pageSize })
                     : null
                 }
                 onNavigate={onNavigate}

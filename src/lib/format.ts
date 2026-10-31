@@ -10,6 +10,11 @@ export function pluralize(count: number, forms: [string, string, string]): strin
   return forms[2];
 }
 
+// "1 контакт", "3 контакта", "12 контактов": the counter under the search and in the groups.
+export function formatContactCount(count: number): string {
+  return `${count} ${pluralize(count, ["контакт", "контакта", "контактов"])}`;
+}
+
 const longDateOptions: Intl.DateTimeFormatOptions = {
   day: "numeric",
   month: "long",

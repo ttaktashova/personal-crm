@@ -11,18 +11,21 @@ import {
   DialogContent,
   DialogTitle,
 } from "@/components/ui/dialog";
+import type { ContactGroup } from "@/lib/groups";
 
 // One shell for "Новый чертила" and "Редактировать контакт", so both windows
 // look and behave alike. A closed window unmounts its form, so every opening
 // starts from the props: saved values or empty fields.
 export function ContactFormDialog({
   title,
+  groups,
   open,
   onOpenChange,
   onSaved,
   ...target
 }: ContactFormTarget & {
   title: string;
+  groups: ContactGroup[];
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSaved: (id: number) => void;
@@ -67,6 +70,7 @@ export function ContactFormDialog({
         </div>
         <ContactForm
           {...target}
+          groups={groups}
           isPending={isPending}
           startTransition={startTransition}
           onSaved={onSaved}

@@ -7,6 +7,10 @@ import { CONTACT_FREQUENCIES } from "../src/lib/contact-frequency";
 export type SeedContact = {
   contact: NewContact;
   interactions: Pick<NewInteraction, "occurredOn" | "summary">[];
+  // Where in the list of existing groups each of the contact's groups stands: numbers from 0
+  // up to 1, 0 to 3 of them. The seed script turns them into real groups, because the
+  // generator does not know which groups the database has. Equal picks make one group.
+  groupPicks: number[];
 };
 
 type Gender = "m" | "f";
@@ -340,11 +344,20 @@ function pickCategory(random: Random): Category {
   return CATEGORIES[CATEGORIES.length - 1];
 }
 
+// About 60 % of the people are in a group: mostly one, sometimes two, rarely three.
+function pickGroups(random: Random): number[] {
+  if (!chance(random, 0.6)) return [];
+  const count = 1 + (chance(random, 0.35) ? 1 : 0) + (chance(random, 0.15) ? 1 : 0);
+  return Array.from({ length: count }, () => random());
+}
+
 export function generateContacts(count: number, seed = 20261009): SeedContact[] {
   const random = createRandom(seed);
   // A separate sequence for the reminder frequency, so names, notes and history
   // stay exactly as they were before contacts had a frequency.
   const frequencyRandom = createRandom(seed + 1);
+  // And one more for the groups, for the same reason.
+  const groupRandom = createRandom(seed + 2);
   const usedNames = new Set<string>();
   const result: SeedContact[] = [];
 
@@ -415,6 +428,7 @@ export function generateContacts(count: number, seed = 20261009): SeedContact[] 
         occurredOn: formatIsoDate(date),
         summary: text,
       })),
+      groupPicks: pickGroups(groupRandom),
     });
   }
 

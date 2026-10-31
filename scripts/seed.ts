@@ -1,4 +1,6 @@
-// Fills an empty database with test contacts and their revenge history: pnpm db:seed
+// Fills an empty database with test contacts, their revenge history and their groups: pnpm db:seed
+// The people are put into the groups the database already has (run the migrations first);
+// with no groups they are saved without groups.
 // Never deletes or changes existing data: if contacts already exist, it does nothing.
 
 import { loadEnvConfig } from "@next/env";
@@ -6,7 +8,7 @@ import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
 
 import { getDatabaseUrl } from "../src/db/database-url";
-import { contacts, interactions } from "../src/db/schema";
+import { contactGroups, contacts, groups, interactions } from "../src/db/schema";
 import { generateContacts } from "./seed-data";
 
 const CONTACT_COUNT = 1000;
@@ -29,7 +31,12 @@ async function main() {
 
     const rows = generateContacts(CONTACT_COUNT);
     let interactionCount = 0;
+    let membershipCount = 0;
     await db.transaction(async (tx) => {
+      const groupIds = (await tx.select({ id: groups.id }).from(groups).orderBy(groups.id)).map(
+        (group) => group.id,
+      );
+
       for (let start = 0; start < rows.length; start += BATCH_SIZE) {
         const batch = rows.slice(start, start + BATCH_SIZE);
         const inserted = await tx
@@ -46,10 +53,28 @@ async function main() {
           await tx.insert(interactions).values(records);
           interactionCount += records.length;
         }
+
+        // A pick is a place in the list of groups; two picks on one group make one membership.
+        // Without groups nobody gets one.
+        const memberships =
+          groupIds.length === 0
+            ? []
+            : batch.flatMap((row, index) => {
+                const picked = new Set(
+                  row.groupPicks.map((pick) => groupIds[Math.floor(pick * groupIds.length)]),
+                );
+                return [...picked].map((groupId) => ({ contactId: ids[index], groupId }));
+              });
+        if (memberships.length > 0) {
+          await tx.insert(contactGroups).values(memberships);
+          membershipCount += memberships.length;
+        }
       }
     });
 
-    console.log(`Seeded ${rows.length} contacts and ${interactionCount} revenge records.`);
+    console.log(
+      `Seeded ${rows.length} contacts, ${interactionCount} revenge records and ${membershipCount} group memberships.`,
+    );
   } finally {
     await client.end();
   }

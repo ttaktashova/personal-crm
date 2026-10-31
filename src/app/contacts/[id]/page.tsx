@@ -5,11 +5,13 @@ import { Suspense } from "react";
 import { BackLink } from "@/components/back-link";
 import { ContactAvatar } from "@/components/contact-avatar";
 import { ContactCardActions } from "@/components/contact-card-actions";
+import { Badge } from "@/components/ui/badge";
 import { InteractionSection } from "@/components/interaction-section";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatContactFrequency } from "@/lib/contact-frequency";
 import { getContact } from "@/lib/contacts";
 import { formatLongDate } from "@/lib/format";
+import { listContactGroups, listGroups } from "@/lib/groups";
 import { parseId } from "@/lib/ids";
 import { listInteractions } from "@/lib/interactions";
 import { cn } from "@/lib/utils";
@@ -53,11 +55,14 @@ async function ContactCard({
   const id = parseId((await params).id);
   if (id === null) notFound();
 
-  const [contact, interactions] = await Promise.all([
+  const [contact, interactions, groupsByContact, allGroups] = await Promise.all([
     getContact(id),
     listInteractions(id),
+    listContactGroups([id]),
+    listGroups(),
   ]);
   if (!contact) notFound();
+  const contactGroups = groupsByContact.get(id) ?? [];
 
   const wasEdited =
     contact.updatedAt.getTime() - contact.createdAt.getTime() >
@@ -86,7 +91,9 @@ async function ContactCard({
               email: contact.email,
               notes: contact.notes,
               contactFrequency: contact.contactFrequency,
+              groupIds: contactGroups.map((group) => group.id),
             }}
+            groups={allGroups}
             className={ACTIONS_CLASS}
           />
           <div className="w-full">
@@ -105,6 +112,7 @@ async function ContactCard({
 
       <dl className={FIELDS_CLASS}>
         <TextField label="Откуда знакомы" value={contact.howWeMet} />
+        <GroupsField groups={contactGroups} />
         <TextField label="Телефон" value={contact.phone} />
         <TextField label="Почта" value={contact.email} />
         {/* Never empty: no frequency reads "Не задано", a value of its own. */}
@@ -151,6 +159,30 @@ function TextField({
   );
 }
 
+// The groups as labels, by name, all of them: the card has the room for any number.
+function GroupsField({ groups }: { groups: { id: number; name: string }[] }) {
+  return (
+    <div className={FIELD_ROW_CLASS}>
+      <dt className={FIELD_LABEL_CLASS}>Группы</dt>
+      <dd className="mt-0.5 sm:mt-0">
+        {groups.length === 0 ? (
+          <span className="text-muted-foreground italic">не указано</span>
+        ) : (
+          <ul className="flex flex-wrap gap-1.5">
+            {groups.map((group) => (
+              <li key={group.id} className="max-w-full">
+                <Badge variant="outline" className="h-6 max-w-full px-2.5 text-caption">
+                  <span className="truncate">{group.name}</span>
+                </Badge>
+              </li>
+            ))}
+          </ul>
+        )}
+      </dd>
+    </div>
+  );
+}
+
 function ContactCardSkeleton() {
   return (
     <div aria-busy aria-label="Загружаем карточку">
@@ -177,8 +209,8 @@ function ContactCardSkeleton() {
         </div>
       </div>
       <div className={FIELDS_CLASS}>
-        {/* "Откуда знакомы", "Телефон", "Почта", "Как часто припоминать". */}
-        {["w-32", "w-40", "w-48", "w-28"].map((width) => (
+        {/* "Откуда знакомы", "Группы", "Телефон", "Почта", "Как часто припоминать". */}
+        {["w-32", "w-36", "w-40", "w-48", "w-28"].map((width) => (
           <SkeletonFieldRow key={width} width={width} />
         ))}
         {/* "Последняя месть": the record line, then the buttons row. */}

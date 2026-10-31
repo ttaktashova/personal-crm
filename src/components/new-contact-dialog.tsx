@@ -6,8 +6,9 @@ import { useState } from "react";
 
 import { ContactFormDialog } from "@/components/contact-form-dialog";
 import { Button } from "@/components/ui/button";
+import type { ContactGroup } from "@/lib/groups";
 
-export function NewContactDialog() {
+export function NewContactDialog({ groups }: { groups: ContactGroup[] }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
 
@@ -19,6 +20,7 @@ export function NewContactDialog() {
       </Button>
       <ContactFormDialog
         title="Новый чертила"
+        groups={groups}
         mode="create"
         open={open}
         onOpenChange={setOpen}

@@ -1,19 +1,23 @@
+import { PlusIcon } from "lucide-react";
 import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import { Suspense } from "react";
 
 import { ContactDirectory } from "@/components/contact-directory";
 import { DueContacts } from "@/components/due-contacts";
+import { GroupFilter } from "@/components/group-filter";
 import { NewContactDialog } from "@/components/new-contact-dialog";
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { findContactPage, listContactsPage } from "@/lib/contacts";
+import { listGroups } from "@/lib/groups";
 import { parseId } from "@/lib/ids";
 import {
-  DEFAULT_PAGE_SIZE,
   firstValue,
   PAGE_SIZE_COOKIE,
   parsePage,
-  parsePageSize,
+  resolveGroupFilter,
+  resolvePageSize,
 } from "@/lib/pagination";
 import { toSearchWords } from "@/lib/search";
 
@@ -27,13 +31,23 @@ export default function ContactsPage({ searchParams }: PageProps<"/">) {
     <main className="mx-auto w-full max-w-3xl px-4 pb-16">
       <header className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3 pt-8 pb-3 sm:pt-12">
         <h1 className="font-display text-3xl sm:text-4xl">Косячники</h1>
-        <NewContactDialog />
+        {/* The window needs the groups for its field; until they arrive the button waits. */}
+        <Suspense fallback={<NewContactButtonSkeleton />}>
+          <NewContact />
+        </Suspense>
       </header>
 
-      {/* The search row adds 8px on top: 24px to the search on a computer, 20px on a phone. */}
-      <div className="mt-3 mb-3 sm:mb-4">
+      <div className="mb-4">
+        <Suspense fallback={<GroupFilterSkeleton />}>
+          <GroupFilter searchParams={searchParams} />
+        </Suspense>
+      </div>
+
+      {/* The search row adds 8px on top: 12px to the group row and 20px to the search
+          on a phone, 24px on a computer. */}
+      <div className="mb-3 sm:mb-4">
         <Suspense fallback={<DueContactsSkeleton />}>
-          <DueContacts />
+          <DueContacts searchParams={searchParams} />
         </Suspense>
       </div>
 
@@ -44,8 +58,13 @@ export default function ContactsPage({ searchParams }: PageProps<"/">) {
   );
 }
 
+// "Добавить черта" with the groups its window chooses from.
+async function NewContact() {
+  return <NewContactDialog groups={await listGroups()} />;
+}
+
 // Reads the database on every request, so another browser sees the same, fresh list.
-// Only one page goes to the browser: ?page=, ?q= and ?size= pick which one.
+// Only one page goes to the browser: ?group=, ?page=, ?q= and ?size= pick which one.
 async function Directory({
   searchParams,
 }: Pick<PageProps<"/">, "searchParams">) {
@@ -53,10 +72,11 @@ async function Directory({
   const cookieStore = await cookies();
 
   // The size in the URL wins, then the one remembered in this browser, then 50.
-  const pageSize =
-    parsePageSize(params.size) ??
-    parsePageSize(cookieStore.get(PAGE_SIZE_COOKIE)?.value) ??
-    DEFAULT_PAGE_SIZE;
+  const pageSize = resolvePageSize(params.size, cookieStore.get(PAGE_SIZE_COOKIE)?.value);
+  // A group that is not a number or is already deleted means "Все".
+  const groups = await listGroups();
+  const groupId = resolveGroupFilter(params.group, groups);
+  const group = groups.find((item) => item.id === groupId) ?? null;
   const query = (firstValue(params.q) ?? "").trim();
   const highlightId = parseId(firstValue(params.added));
 
@@ -70,6 +90,7 @@ async function Directory({
     page,
     pageSize,
     words: toSearchWords(query),
+    groupId,
   });
 
   return (
@@ -77,12 +98,38 @@ async function Directory({
       contacts={list.contacts}
       totalCount={list.totalCount}
       matchedCount={list.matchedCount}
+      allCount={list.allCount}
+      group={group}
       page={list.page}
       pageCount={list.pageCount}
       pageSize={pageSize}
       query={query}
       highlightId={highlightId}
     />
+  );
+}
+
+// The button as it looks while the groups are loading: the same, but it does nothing yet.
+function NewContactButtonSkeleton() {
+  return (
+    <Button size="lg" disabled aria-busy>
+      <PlusIcon data-icon="inline-start" />
+      Добавить черта
+    </Button>
+  );
+}
+
+// The row of groups: a few chips and the "Группы" button, as high as the real ones.
+function GroupFilterSkeleton() {
+  return (
+    <div aria-busy aria-label="Загружаем группы" className="flex items-start gap-2">
+      <div className="flex flex-1 gap-2">
+        {["w-14", "w-24", "w-20", "w-28"].map((width) => (
+          <Skeleton key={width} className={`h-11 rounded-chip sm:h-9 ${width}`} />
+        ))}
+      </div>
+      <Skeleton className="h-11 w-28 shrink-0 rounded-xl sm:h-9 sm:w-26" />
+    </div>
   );
 }
 
