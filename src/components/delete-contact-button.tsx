@@ -23,6 +23,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { readListHref } from "@/lib/list-return";
 
 export function DeleteContactButton({
   contactId,
@@ -50,8 +51,10 @@ export function DeleteContactButton({
         } else {
           toast.success(`Контакт «${name}» удалён`);
         }
+        // Back to the page of the list the card was opened from. If it was the only
+        // contact on the last page, the server opens the new last page.
         // Replace, not push: Back must not lead to the deleted contact.
-        router.replace("/");
+        router.replace(readListHref());
       } catch {
         toast.error("Не удалось удалить. Проверьте, что приложение запущено, и попробуйте ещё раз.");
       }
