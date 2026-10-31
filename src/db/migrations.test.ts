@@ -12,6 +12,8 @@ import { createTemporaryDatabase, type TemporaryDatabase } from "@/test/temporar
 
 const allMigrations = fileURLToPath(new URL("../../drizzle", import.meta.url));
 
+// The migrations that existed before the frequency: 0000 to 0002.
+const MIGRATIONS_BEFORE_FREQUENCY = 3;
 // The migrations that existed before groups: 0000 to 0003.
 const MIGRATIONS_BEFORE_GROUPS = 4;
 
@@ -104,5 +106,27 @@ describe("migrations", () => {
       "select count(*)::int as count from contact_groups",
     );
     expect(links.count).toBe(0);
+  });
+
+  it("give the contacts that were there before no frequency", { timeout: 30_000 }, async () => {
+    const { url } = await newDatabase();
+    await applyMigrations(url, await copyFirstMigrations(MIGRATIONS_BEFORE_FREQUENCY));
+
+    await query(
+      url,
+      `insert into contacts (name, how_we_met, phone, email, notes)
+       select 'Контакт ' || n, 'Познакомились ' || n, '+7 900 ' || n, 'c' || n || '@example.com',
+         'Заметка ' || n
+       from generate_series(1, 1000) as n`,
+    );
+    const before = await query(url, "select * from contacts order by id");
+
+    await applyMigrations(url, allMigrations);
+
+    const after = await query<{ contact_frequency: string | null }>(
+      url,
+      "select * from contacts order by id",
+    );
+    expect(after).toEqual(before.map((contact) => ({ ...contact, contact_frequency: null })));
   });
 });

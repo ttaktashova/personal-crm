@@ -35,3 +35,62 @@ export async function addContacts(names: string[]): Promise<void> {
     await sql`insert into contacts ${sql(names.map((name) => ({ name })))}`;
   });
 }
+
+export type ContactFrequency = "week" | "month" | "quarter" | "year";
+
+// One contact with a frequency or without one. `createdAt` puts "Добавлен" in the past,
+// so a change made by the test shows "изменён". Returns the id.
+export async function addContact({
+  name,
+  contactFrequency = null,
+  createdAt = null,
+}: {
+  name: string;
+  contactFrequency?: ContactFrequency | null;
+  createdAt?: Date | null;
+}): Promise<number> {
+  return withDatabase(async (sql) => {
+    const [contact] = await sql<{ id: number }[]>`
+      insert into contacts (name, contact_frequency, created_at, updated_at)
+      values (
+        ${name},
+        ${contactFrequency}::contact_frequency,
+        coalesce(${createdAt}::timestamptz, now()),
+        coalesce(${createdAt}::timestamptz, now())
+      )
+      returning id
+    `;
+    return contact.id;
+  });
+}
+
+// A revenge record "Отомстил" on a "YYYY-MM-DD" date.
+export async function addRevenge(contactId: number, occurredOn: string): Promise<void> {
+  await withDatabase(async (sql) => {
+    await sql`
+      insert into interactions (contact_id, occurred_on, summary)
+      values (${contactId}, ${occurredOn}::date, 'Отомстил')
+    `;
+  });
+}
+
+// A group with these people in it.
+export async function addGroup(name: string, contactIds: number[]): Promise<void> {
+  await withDatabase(async (sql) => {
+    const [group] = await sql<{ id: number }[]>`
+      insert into groups (name) values (${name}) returning id
+    `;
+    if (contactIds.length === 0) return;
+    await sql`
+      insert into contact_groups
+      ${sql(contactIds.map((contactId) => ({ contact_id: contactId, group_id: group.id })))}
+    `;
+  });
+}
+
+// Deletes a contact behind the page's back, the way another tab would.
+export async function deleteContact(id: number): Promise<void> {
+  await withDatabase(async (sql) => {
+    await sql`delete from contacts where id = ${id}`;
+  });
+}

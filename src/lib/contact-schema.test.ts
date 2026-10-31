@@ -11,12 +11,12 @@ const valid = {
   contactFrequency: "",
 };
 
-function parse(groupFields: Record<string, unknown>) {
-  return contactInputSchema.safeParse({ ...valid, ...groupFields });
+function parse(fields: Record<string, unknown>) {
+  return contactInputSchema.safeParse({ ...valid, ...fields });
 }
 
-function groupErrors(groupFields: Record<string, unknown>) {
-  const result = parse(groupFields);
+function errorsOf(fields: Record<string, unknown>) {
+  const result = parse(fields);
   if (result.success) throw new Error("The input was accepted");
   return toFieldErrors(result.error);
 }
@@ -58,19 +58,19 @@ describe("contactInputSchema: groups", () => {
   });
 
   it("shows an empty new name at the field «Группы» and nowhere else", () => {
-    expect(groupErrors({ newGroupNames: ["   "] })).toEqual({
+    expect(errorsOf({ newGroupNames: ["   "] })).toEqual({
       groups: "Укажите название группы",
     });
   });
 
   it("shows a long new name at the field «Группы» and nowhere else", () => {
-    expect(groupErrors({ newGroupNames: ["а".repeat(51)] })).toEqual({
+    expect(errorsOf({ newGroupNames: ["а".repeat(51)] })).toEqual({
       groups: "Слишком длинное название: не больше 50 символов",
     });
   });
 
   it("shows the errors of the other fields next to the one of the groups", () => {
-    expect(groupErrors({ name: "", newGroupNames: [""] })).toEqual({
+    expect(errorsOf({ name: "", newGroupNames: [""] })).toEqual({
       name: "Укажите имя",
       groups: "Укажите название группы",
     });
@@ -81,11 +81,31 @@ describe("contactInputSchema: groups", () => {
     const names = (count: number) => Array.from({ length: count }, (_, index) => `Группа ${index}`);
 
     expect(parse({ groupIds: ids(100), newGroupNames: names(20) }).success).toBe(true);
-    expect(Object.keys(groupErrors({ groupIds: ids(101) }))).toEqual(["groups"]);
-    expect(Object.keys(groupErrors({ newGroupNames: names(21) }))).toEqual(["groups"]);
+    expect(Object.keys(errorsOf({ groupIds: ids(101) }))).toEqual(["groups"]);
+    expect(Object.keys(errorsOf({ newGroupNames: names(21) }))).toEqual(["groups"]);
   });
 
   it.each([0, -1, 1.5, "7", 2_147_483_648])("refuses %j as a group id", (id) => {
-    expect(Object.keys(groupErrors({ groupIds: [id] }))).toEqual(["groups"]);
+    expect(Object.keys(errorsOf({ groupIds: [id] }))).toEqual(["groups"]);
+  });
+});
+
+describe("contactInputSchema: frequency", () => {
+  it("stores «Не задано», which the form sends as an empty string, as null", () => {
+    const result = parse({ contactFrequency: "" });
+
+    expect(result.success && result.data.contactFrequency).toBeNull();
+  });
+
+  it.each(["week", "month", "quarter", "year"])("keeps %s", (frequency) => {
+    const result = parse({ contactFrequency: frequency });
+
+    expect(result.success && result.data.contactFrequency).toBe(frequency);
+  });
+
+  it("shows a value not from the list at the field «Как часто припоминать»", () => {
+    expect(errorsOf({ contactFrequency: "daily" })).toEqual({
+      contactFrequency: "Выберите, как часто припоминать, из списка",
+    });
   });
 });
