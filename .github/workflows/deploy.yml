@@ -59,8 +59,9 @@ jobs:
             StrictHostKeyChecking yes
           EOF
 
+      # The whole deploy/ folder goes to /opt/personal-crm/deploy, so a new script there arrives by itself
       - name: Copy deploy scripts to the server
-        run: scp deploy/compose.yaml deploy/deploy.sh server:/opt/personal-crm/deploy/
+        run: scp -r deploy server:/opt/personal-crm/
 
       - name: Deploy on the server
         env:
