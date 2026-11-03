@@ -2,9 +2,11 @@
 # Deploys one app image on the server. GitHub Actions copies deploy/ to the server and runs it;
 # it can also be run by hand, e.g. to roll back to the previous image.
 #
-#   pull image -> migrations in a one-off container -> start the new app -> smoke /health
-#   -> keep only the current and previous app images
+#   pull image -> back up the database -> migrations in a one-off container -> start the new app
+#   -> smoke /health -> keep only the current and previous app images
 #
+# The backup goes to /opt/personal-crm/backups and is named after the app version that was running
+# before this deploy (see backup_db in lib.sh).
 # Any failed step stops the deploy. Nothing is rolled back automatically.
 #
 # Usage: deploy.sh <image> [ghcr-user]
@@ -14,18 +16,12 @@ set -euo pipefail
 
 IMAGE="${1:?usage: deploy.sh <image> [ghcr-user]}"
 GHCR_USER="${2:-}"
-APP_DIR=/opt/personal-crm
-ENV_FILE="$APP_DIR/.env"
-HEALTH_URL=http://127.0.0.1:3000/health
-COMPOSE=(docker compose -p prod -f "$APP_DIR/deploy/compose.yaml" --env-file "$ENV_FILE")
+FAIL_PREFIX="DEPLOY FAILED"
+# shellcheck source=lib.sh
+source "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
 
-fail() {
-  echo "DEPLOY FAILED: $*" >&2
-  exit 1
-}
-
-[[ -f "$ENV_FILE" ]] || fail "$ENV_FILE not found"
-[[ "$(stat -c %a "$ENV_FILE")" == 600 ]] || fail "$ENV_FILE must have permissions 600"
+check_env_file
+take_lock
 
 export APP_IMAGE="$IMAGE"
 
@@ -51,6 +47,12 @@ fi
 echo "==> Starting the database"
 "${COMPOSE[@]}" up -d --wait db
 
+# The version of the app container as it is now, before the new image replaces it
+version_before="$(image_version "$(app_container_image)")"
+
+echo "==> Backing up the database (app version before this deploy: $version_before)"
+backup_db deploy "$version_before" || fail "database backup failed, migrations were not run, the new image was not started"
+
 echo "==> Applying migrations"
 "${COMPOSE[@]}" run --rm migrate || fail "migrations failed, the new image was not started"
 
@@ -58,17 +60,7 @@ echo "==> Starting the new app"
 "${COMPOSE[@]}" up -d --no-deps app
 
 echo "==> Smoke check $HEALTH_URL"
-status=""
-for _ in $(seq 1 30); do
-  status="$(curl -s -o /dev/null -m 5 -w '%{http_code}' "$HEALTH_URL" || true)"
-  [[ "$status" == 200 ]] && break
-  sleep 2
-done
-if [[ "$status" != 200 ]]; then
-  "${COMPOSE[@]}" logs --tail 50 app >&2 || true
-  fail "smoke check got HTTP ${status:-no answer} from $HEALTH_URL instead of 200. Nothing was rolled back."
-fi
-echo "Smoke check passed: HTTP 200"
+smoke_check || fail "the new app did not pass the smoke check. Nothing was rolled back."
 
 current="$(cat "$APP_DIR/current-image" 2>/dev/null || true)"
 if [[ -n "$current" && "$current" != "$IMAGE" ]]; then
