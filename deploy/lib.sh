@@ -1,36 +1,59 @@
 # Shared by deploy.sh and restore.sh: paths, the compose command and the steps both of them need.
-# Sourced, not run. The calling script sets FAIL_PREFIX and exports APP_IMAGE before using COMPOSE.
+# Sourced, not run. The calling script sets ENVIRONMENT (prod or staging) and FAIL_PREFIX before
+# sourcing it, and exports APP_IMAGE before using COMPOSE.
 # shellcheck shell=bash
-
-APP_DIR=/opt/personal-crm
-ENV_FILE="$APP_DIR/.env"
-BACKUP_DIR="$APP_DIR/backups"
-LOCK_FILE="$APP_DIR/.lock"
-HEALTH_URL=http://127.0.0.1:3000/health
-# Only the newest deploy backups are kept; copies taken before a restore are never removed automatically
-KEEP_DEPLOY_BACKUPS=10
-COMPOSE=(docker compose -p prod -f "$APP_DIR/deploy/compose.yaml" --env-file "$ENV_FILE")
 
 fail() {
   echo "${FAIL_PREFIX:-FAILED}: $*" >&2
   exit 1
 }
 
+APP_DIR=/opt/personal-crm
+# Backups are taken on prod only; restore.sh reads them for both environments
+BACKUP_DIR="$APP_DIR/backups"
+# Only the newest deploy backups are kept; copies taken before a restore are never removed automatically
+KEEP_DEPLOY_BACKUPS=10
+# The compose.yaml next to this file: every environment has its own copy of deploy/
+DEPLOY_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Each environment has its own folder with .env, lock and image files, its own compose project
+# (own database volume), its own loopback port for nginx and, on staging, memory limits.
+# A memory limit of 0 means no limit.
+case "${ENVIRONMENT:-}" in
+  prod)
+    ENV_DIR="$APP_DIR"
+    export APP_PORT=3000 APP_MEMORY_LIMIT=0 DB_MEMORY_LIMIT=0
+    ;;
+  staging)
+    ENV_DIR="$APP_DIR/staging"
+    export APP_PORT=3001 APP_MEMORY_LIMIT=512m DB_MEMORY_LIMIT=256m
+    ;;
+  *)
+    fail "unknown environment \"${ENVIRONMENT:-}\", use prod or staging"
+    ;;
+esac
+
+ENV_FILE="$ENV_DIR/.env"
+LOCK_FILE="$ENV_DIR/.lock"
+HEALTH_URL="http://127.0.0.1:$APP_PORT/health"
+COMPOSE=(docker compose -p "$ENVIRONMENT" -f "$DEPLOY_DIR/compose.yaml" --env-file "$ENV_FILE")
+
 check_env_file() {
   [[ -f "$ENV_FILE" ]] || fail "$ENV_FILE not found"
   [[ "$(stat -c %a "$ENV_FILE")" == 600 ]] || fail "$ENV_FILE must have permissions 600"
 }
 
-# One deploy or restore at a time on the server; the lock is released when the script exits
+# One deploy or restore at a time per environment; the lock is released when the script exits.
+# Prod and staging have separate locks, so they do not wait for each other.
 take_lock() {
   exec 9>"$LOCK_FILE"
-  flock -n 9 || fail "another deploy or restore is running on this server, try again when it finishes"
+  flock -n 9 || fail "another deploy or restore of $ENVIRONMENT is running on this server, try again when it finishes"
 }
 
-# The image of the prod app container, running or stopped; nothing if there is no such container
+# The image of this environment's app container, running or stopped; nothing if there is no such container
 app_container_image() {
   local id
-  id="$(docker ps -aq --filter label=com.docker.compose.project=prod --filter label=com.docker.compose.service=app | head -n 1)"
+  id="$(docker ps -aq --filter "label=com.docker.compose.project=$ENVIRONMENT" --filter label=com.docker.compose.service=app | head -n 1)"
   if [[ -n "$id" ]]; then
     docker inspect -f '{{.Config.Image}}' "$id"
   fi
@@ -50,6 +73,10 @@ image_version() {
 # Returns non-zero if the backup was not saved; a half-written file never gets a .dump name.
 backup_db() {
   local kind="$1" version="$2" file partial
+  [[ "$ENVIRONMENT" == prod ]] || {
+    echo "backups are taken on prod only" >&2
+    return 1
+  }
   file="$BACKUP_DIR/$(TZ=Europe/Moscow date +%Y-%m-%d_%H-%M-%S)_${kind}_${version}.dump"
   partial="$file.partial"
 
