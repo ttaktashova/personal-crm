@@ -4,24 +4,31 @@ on:
   push:
     branches: [main]
 
-# One deploy at a time; a newer push waits for the running one to finish
+# Runs go one at a time in the order of the commits, so an older commit never deploys over a newer
+# one; a newer push waits for the running one to finish
 concurrency:
-  group: deploy-prod
+  group: deploy-main
   cancel-in-progress: false
 
 permissions:
   contents: read
-  packages: write
 
 jobs:
-  deploy:
+  image:
+    name: Build image
     runs-on: ubuntu-24.04
     timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      image: ${{ steps.name.outputs.image }}
     steps:
       - uses: actions/checkout@v7
 
       - name: Image name
-        run: echo "IMAGE=ghcr.io/${GITHUB_REPOSITORY,,}:${GITHUB_SHA}" >>"$GITHUB_ENV"
+        id: name
+        run: echo "image=ghcr.io/${GITHUB_REPOSITORY,,}:${GITHUB_SHA}" >>"$GITHUB_OUTPUT"
 
       - uses: docker/setup-buildx-action@v4
 
@@ -36,9 +43,44 @@ jobs:
         with:
           context: .
           push: true
-          tags: ${{ env.IMAGE }}
+          tags: ${{ steps.name.outputs.image }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+  # The same image goes to staging and prod, side by side: one failing does not stop the other.
+  # Prod does not wait for staging yet.
+  deploy:
+    name: Deploy ${{ matrix.environment }}
+    needs: image
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      packages: read
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - environment: staging
+            dir: /opt/personal-crm/staging
+            url: https://test-app.testblacklist.ru
+          - environment: prod
+            dir: /opt/personal-crm
+            url: https://app.testblacklist.ru
+    # The deploy history of each environment is on GitHub: repository → Environments
+    environment:
+      name: ${{ matrix.environment }}
+      url: ${{ matrix.url }}
+    # Two deploys to one environment never run at the same time; a newer one waits
+    concurrency:
+      group: deploy-${{ matrix.environment }}
+      cancel-in-progress: false
+    env:
+      ENVIRONMENT: ${{ matrix.environment }}
+      DEPLOY_DIR: ${{ matrix.dir }}
+      IMAGE: ${{ needs.image.outputs.image }}
+    steps:
+      - uses: actions/checkout@v7
 
       - name: Set up SSH
         env:
@@ -59,11 +101,13 @@ jobs:
             StrictHostKeyChecking yes
           EOF
 
-      # The whole deploy/ folder goes to /opt/personal-crm/deploy, so a new script there arrives by itself
+      # The whole deploy/ folder goes to the environment's own folder (/opt/personal-crm/deploy,
+      # /opt/personal-crm/staging/deploy), so a new script there arrives by itself and a staging
+      # deploy never replaces the scripts a prod deploy is running
       - name: Copy deploy scripts to the server
-        run: scp -r deploy server:/opt/personal-crm/
+        run: scp -r deploy "server:$DEPLOY_DIR/"
 
       - name: Deploy on the server
         env:
           GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: printf '%s\n' "$GHCR_TOKEN" | ssh server bash /opt/personal-crm/deploy/deploy.sh "$IMAGE" "$GITHUB_ACTOR"
+        run: printf '%s\n' "$GHCR_TOKEN" | ssh server bash "$DEPLOY_DIR/deploy/deploy.sh" "$ENVIRONMENT" "$IMAGE" "$GITHUB_ACTOR"

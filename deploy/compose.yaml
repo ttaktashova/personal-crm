@@ -1,5 +1,7 @@
-# Production stack on the server: compose project "prod", run by deploy/deploy.sh.
-# Values come from /opt/personal-crm/.env (see deploy/server.env.example); APP_IMAGE is set by deploy.sh.
+# The app stack on the server, one file for both environments: compose project "prod" or
+# "staging", run by deploy/deploy.sh and deploy/restore.sh.
+# Secrets come from the environment's .env (see deploy/server.env.example); APP_IMAGE, the port
+# and the memory limits are set by the scripts (deploy/lib.sh).
 # Every value is required: without one, compose refuses to run any command, so a deploy stops
 # before the backup and the migrations and the running version stays.
 
@@ -9,6 +11,8 @@ services:
   db:
     image: postgres:18-alpine
     restart: unless-stopped
+    # 0 is no limit (prod); staging gets a limit so it cannot take the memory prod needs
+    mem_limit: ${DB_MEMORY_LIMIT:?DB_MEMORY_LIMIT is set by deploy/lib.sh}
     environment:
       POSTGRES_USER: ${POSTGRES_USER:?set POSTGRES_USER in .env}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
@@ -25,6 +29,7 @@ services:
   migrate:
     image: ${APP_IMAGE:?APP_IMAGE is set by deploy.sh}
     profiles: [migrate]
+    mem_limit: ${APP_MEMORY_LIMIT:?APP_MEMORY_LIMIT is set by deploy/lib.sh}
     working_dir: /app/migrate
     command: ["node", "migrate.mjs"]
     environment:
@@ -38,17 +43,19 @@ services:
   app:
     image: ${APP_IMAGE:?APP_IMAGE is set by deploy.sh}
     restart: unless-stopped
+    mem_limit: ${APP_MEMORY_LIMIT:?APP_MEMORY_LIMIT is set by deploy/lib.sh}
     environment:
       DATABASE_URL: *database-url
-      # Sign-in: the secret of the sign-in cookies and the address the links in emails lead to
+      # Sign-in: the secret of the sign-in cookies and the address the links in emails lead to,
+      # the environment's own address
       BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:?set BETTER_AUTH_SECRET in .env}
       BETTER_AUTH_URL: ${BETTER_AUTH_URL:?set BETTER_AUTH_URL in .env}
       # Where sign-in emails go (Resend on the server) and their sender
       SMTP_URL: ${SMTP_URL:?set SMTP_URL in .env}
       EMAIL_FROM: ${EMAIL_FROM:?set EMAIL_FROM in .env}
-    # Loopback only: the outside world reaches the app through nginx
+    # Loopback only: the outside world reaches the app through nginx. 3000 prod, 3001 staging
     ports:
-      - "127.0.0.1:3000:3000"
+      - "127.0.0.1:${APP_PORT:?APP_PORT is set by deploy/lib.sh}:3000"
     depends_on:
       db:
         condition: service_healthy
