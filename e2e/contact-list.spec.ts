@@ -1,6 +1,8 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
 
-import { addContacts, resetDatabase } from "./database";
+import { addContacts, addUser, resetDatabase } from "./database";
+import { clearInbox } from "./mailpit";
+import { signIn } from "./sign-in";
 
 // Where the page switcher stands: "Место переключателя" of openspec/specs/contact-list/spec.md.
 
@@ -45,9 +47,14 @@ const right = (box: Box) => box.x + box.width;
 const bottom = (box: Box) => box.y + box.height;
 const middle = (box: Box) => box.y + box.height / 2;
 
-test.beforeEach(async () => {
+// Without a sign-in the app opens the sign-in page: every test signs in first.
+const OWNER = "owner@example.com";
+
+test.beforeEach(async ({ page }) => {
   await resetDatabase();
-  await addContacts(PEOPLE);
+  await clearInbox();
+  await addContacts(await addUser(OWNER), PEOPLE);
+  await signIn(page, OWNER);
 });
 
 test("on a computer the switcher stands in the row of the counter, next to «По»", async ({

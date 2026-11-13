@@ -11,9 +11,12 @@ import {
   type GroupItem,
 } from "@/lib/groups";
 import { parseId } from "@/lib/ids";
+import { requireUser } from "@/lib/session";
 
 // The "Группы" window. Every answer except a rejected name brings the fresh list of
 // groups, so the window shows the truth even after "not-found" (deleted in another tab).
+// Every action starts with the signed-in user and touches only their groups: another user's
+// group answers "not-found", like a deleted one.
 
 export type GroupFieldErrors = { name: string };
 
@@ -37,18 +40,19 @@ export type CreateGroupResult =
   { status: "saved"; groups: GroupItem[] } | { status: "invalid"; fieldErrors: GroupFieldErrors };
 
 export async function createGroup(input: unknown): Promise<CreateGroupResult> {
+  const user = await requireUser();
   const checked = checkName(input);
   if ("error" in checked) {
     return { status: "invalid", fieldErrors: { name: checked.error } };
   }
 
-  const result = await insertGroup(checked.name);
+  const result = await insertGroup(user.id, checked.name);
   if (result.status === "duplicate") {
     return { status: "invalid", fieldErrors: { name: DUPLICATE_NAME_MESSAGE } };
   }
 
   revalidateGroups();
-  return { status: "saved", groups: await listGroups() };
+  return { status: "saved", groups: await listGroups(user.id) };
 }
 
 export type RenameGroupResult =
@@ -57,6 +61,7 @@ export type RenameGroupResult =
   | { status: "not-found"; groups: GroupItem[] };
 
 export async function renameGroup(id: unknown, input: unknown): Promise<RenameGroupResult> {
+  const user = await requireUser();
   const checked = checkName(input);
   if ("error" in checked) {
     return { status: "invalid", fieldErrors: { name: checked.error } };
@@ -66,7 +71,7 @@ export async function renameGroup(id: unknown, input: unknown): Promise<RenameGr
   const result =
     groupId === null
       ? { status: "not-found" as const }
-      : await updateGroupName(groupId, checked.name);
+      : await updateGroupName(user.id, groupId, checked.name);
   if (result.status === "duplicate") {
     return { status: "invalid", fieldErrors: { name: DUPLICATE_NAME_MESSAGE } };
   }
@@ -74,7 +79,7 @@ export async function renameGroup(id: unknown, input: unknown): Promise<RenameGr
   revalidateGroups();
   return {
     status: result.status === "renamed" ? "saved" : "not-found",
-    groups: await listGroups(),
+    groups: await listGroups(user.id),
   };
 }
 
@@ -82,9 +87,11 @@ export type DeleteGroupResult =
   { status: "deleted"; groups: GroupItem[] } | { status: "not-found"; groups: GroupItem[] };
 
 export async function deleteGroup(id: unknown): Promise<DeleteGroupResult> {
+  const user = await requireUser();
   const groupId = parseId(id);
-  const result = groupId === null ? { status: "not-found" as const } : await removeGroup(groupId);
+  const result =
+    groupId === null ? { status: "not-found" as const } : await removeGroup(user.id, groupId);
 
   revalidateGroups();
-  return { status: result.status, groups: await listGroups() };
+  return { status: result.status, groups: await listGroups(user.id) };
 }

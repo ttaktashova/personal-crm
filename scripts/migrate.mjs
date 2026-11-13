@@ -39,15 +39,35 @@ function describeError(error) {
   return details.join(", ");
 }
 
+// The owner's email: 0008_assign_data_to_owner gives it the data that was there before sign-in.
+// SQL cannot read environment variables, so it goes into the Postgres setting app.owner_email
+// of the connection that migrates. Checked before connecting, by the same simple rule as the
+// migration, so the log says what is wrong instead of a bare code. The value is never printed.
+// The same steps as in src/db/migrate.ts: change both.
+const OWNER_EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+function isOwnerEmail(value) {
+  const email = value?.trim() ?? "";
+  return email.length <= 254 && OWNER_EMAIL_PATTERN.test(email);
+}
+
 const url = process.env.DATABASE_URL;
 if (!url) {
   console.error("Migrations failed: DATABASE_URL is not set");
   process.exit(1);
 }
 
+const ownerEmail = process.env.OWNER_EMAIL;
+if (!isOwnerEmail(ownerEmail)) {
+  console.error("Migrations failed: OWNER_EMAIL is not set or is not an email");
+  process.exit(1);
+}
+
+// One connection: the setting lives in it.
 const client = postgres(url, { max: 1, onnotice: () => {} });
 
 try {
+  await client`select set_config('app.owner_email', ${ownerEmail}, false)`;
   await migrate(drizzle(client), { migrationsFolder: "./drizzle" });
   console.log("Migrations applied.");
 } catch (error) {

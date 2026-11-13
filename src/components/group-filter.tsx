@@ -10,6 +10,7 @@ import {
   resolveGroupFilter,
   resolvePageSize,
 } from "@/lib/pagination";
+import { requireUser } from "@/lib/session";
 import { cn } from "@/lib/utils";
 
 // 44px tall on a phone, 36px on a computer, like the other controls of the main page.
@@ -19,12 +20,14 @@ const CHIP_CLASS =
 // "Все · Аналитики · Друзья · …" under the page title, and the "Группы" button that opens
 // the window for managing the groups. A group is a plain link to the list with ?group=,
 // so Back, a copied address and a bookmark all keep the group. The search and the page size
-// stay when the group changes; the page goes back to the first one.
+// stay when the group changes; the page goes back to the first one. Only the user's own groups:
+// another user's group in ?group= is not among them, so it counts as wrong and shows «Все».
 export async function GroupFilter({ searchParams }: Pick<PageProps<"/">, "searchParams">) {
+  const user = await requireUser();
   const params = await searchParams;
   const cookieStore = await cookies();
 
-  const groups = await listGroups();
+  const groups = await listGroups(user.id);
   const selectedId = resolveGroupFilter(params.group, groups);
   const pageSize = resolvePageSize(params.size, cookieStore.get(PAGE_SIZE_COOKIE)?.value);
   const query = (firstValue(params.q) ?? "").trim();

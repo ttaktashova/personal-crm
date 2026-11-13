@@ -19,10 +19,17 @@ async function insertId(query: SQL): Promise<number> {
   return row.id;
 }
 
-const addContact = (name: string) =>
-  insertId(sql`insert into contacts (name) values (${name}) returning id`);
-const addGroup = (name: string) =>
-  insertId(sql`insert into groups (name) values (${name}) returning id`);
+// Contacts and groups belong to a user: `owner` unless another one is named.
+let owner: number;
+
+const addUser = (email: string) =>
+  insertId(
+    sql`insert into users (name, email, email_verified) values ('', ${email}, true) returning id`,
+  );
+const addContact = (name: string, ownerId = owner) =>
+  insertId(sql`insert into contacts (owner_id, name) values (${ownerId}, ${name}) returning id`);
+const addGroup = (name: string, ownerId = owner) =>
+  insertId(sql`insert into groups (owner_id, name) values (${ownerId}, ${name}) returning id`);
 const addToGroup = (contactId: number, groupId: number) =>
   run(sql`insert into contact_groups (contact_id, group_id) values (${contactId}, ${groupId})`);
 
@@ -43,7 +50,34 @@ async function expectDatabaseError(promise: Promise<unknown>): Promise<DatabaseE
 }
 
 describe("groups in the database", () => {
-  beforeEach(resetDatabase);
+  beforeEach(async () => {
+    await resetDatabase();
+    owner = await addUser("anna@example.com");
+  });
+
+  it("does not let a contact or a group in without an owner", async () => {
+    const contact = await expectDatabaseError(
+      run(sql`insert into contacts (name) values ('Анна')`),
+    );
+    expect(contact.code).toBe("23502");
+    expect(contact.column).toBe("owner_id");
+
+    const group = await expectDatabaseError(run(sql`insert into groups (name) values ('Теннис')`));
+    expect(group.code).toBe("23502");
+    expect(group.column).toBe("owner_id");
+
+    expect(await count("contacts")).toBe(0);
+    expect(await count("groups")).toBe(0);
+  });
+
+  it("lets two users each have a group of the same name", async () => {
+    const boris = await addUser("boris@example.com");
+    await addGroup("Друзья");
+
+    await addGroup("друзья", boris);
+
+    expect(await count("groups")).toBe(2);
+  });
 
   it("does not let a person into one group twice", async () => {
     const anna = await addContact("Анна");

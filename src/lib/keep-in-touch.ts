@@ -20,7 +20,9 @@ export type DueContact = {
 // 31.01 + 1 month to 28.02 by itself. Order: no revenge yet first, then the earliest term,
 // then the name in the same Russian collation as the contact list; id breaks the last ties.
 // With `groupId` only the people of that group are counted, in the same order.
+// Only the owner's contacts count: another user's people are never due here.
 export async function listDueContacts(
+  ownerId: number,
   today: string,
   groupId: number | null,
 ): Promise<DueContact[]> {
@@ -54,7 +56,7 @@ export async function listDueContacts(
           from ${interactions} i
           where i.contact_id = c.id
         ) last on true
-        where c.contact_frequency is not null ${inGroup}
+        where c.owner_id = ${ownerId}::integer and c.contact_frequency is not null ${inGroup}
       ) due
       where due_on is null or due_on <= ${today}::date
       order by due_on asc nulls first, name collate "ru-RU-x-icu", id

@@ -4,34 +4,51 @@ import {
   contacts,
   groups,
   interactions,
+  users,
   type Contact,
   type Group,
   type NewContact,
+  type User,
 } from "@/db/schema";
 
 // Rows for tests. They write straight to the tables, so a test of a function does not
-// depend on another function of the app to set itself up.
+// depend on another function of the app to set itself up. Contacts and groups belong to
+// the user whose id comes first.
 
-export async function addContact(values: Partial<NewContact> & { name: string }): Promise<Contact> {
+// A user who has signed in before.
+export async function addUser(email: string): Promise<User> {
+  const [user] = await runQuery("addUser", (db) =>
+    db.insert(users).values({ name: "", email, emailVerified: true }).returning(),
+  );
+  return user;
+}
+
+export async function addContact(
+  ownerId: number,
+  values: Omit<Partial<NewContact>, "ownerId"> & { name: string },
+): Promise<Contact> {
   const [contact] = await runQuery("addContact", (db) =>
-    db.insert(contacts).values(values).returning(),
+    db
+      .insert(contacts)
+      .values({ ...values, ownerId })
+      .returning(),
   );
   return contact;
 }
 
-export async function addContacts(names: string[]): Promise<Contact[]> {
+export async function addContacts(ownerId: number, names: string[]): Promise<Contact[]> {
   if (names.length === 0) return [];
   return runQuery("addContacts", (db) =>
     db
       .insert(contacts)
-      .values(names.map((name) => ({ name })))
+      .values(names.map((name) => ({ name, ownerId })))
       .returning(),
   );
 }
 
-export async function addGroup(name: string): Promise<Group> {
+export async function addGroup(ownerId: number, name: string): Promise<Group> {
   const [group] = await runQuery("addGroup", (db) =>
-    db.insert(groups).values({ name }).returning(),
+    db.insert(groups).values({ name, ownerId }).returning(),
   );
   return group;
 }

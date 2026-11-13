@@ -8,17 +8,19 @@ import { formatDueLabel } from "@/lib/format";
 import { listGroups } from "@/lib/groups";
 import { listDueContacts } from "@/lib/keep-in-touch";
 import { resolveGroupFilter } from "@/lib/pagination";
+import { requireUser } from "@/lib/session";
 
 // "Пора мстить" on the main page, or the "Пока некому мстить" card when no one is due.
 // With a group chosen (?group=) only the people of that group are counted.
 // Reads the database on every request, so another browser sees the same block.
 export async function DueContacts({ searchParams }: Pick<PageProps<"/">, "searchParams">) {
+  const user = await requireUser();
   // "Today" belongs to the request, not to the prerendered shell.
   await io();
   const today = todayIsoDate();
   const params = await searchParams;
-  const groupId = resolveGroupFilter(params.group, await listGroups());
-  const contacts = await listDueContacts(today, groupId);
+  const groupId = resolveGroupFilter(params.group, await listGroups(user.id));
+  const contacts = await listDueContacts(user.id, today, groupId);
 
   if (contacts.length === 0) {
     return (

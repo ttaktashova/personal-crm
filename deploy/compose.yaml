@@ -1,5 +1,7 @@
 # Production stack on the server: compose project "prod", run by deploy/deploy.sh.
 # Values come from /opt/personal-crm/.env (see deploy/server.env.example); APP_IMAGE is set by deploy.sh.
+# Every value is required: without one, compose refuses to run any command, so a deploy stops
+# before the backup and the migrations and the running version stays.
 
 x-database-url: &database-url postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
 
@@ -27,6 +29,8 @@ services:
     command: ["node", "migrate.mjs"]
     environment:
       DATABASE_URL: *database-url
+      # The user who gets the data that was there before sign-in (0008_assign_data_to_owner)
+      OWNER_EMAIL: ${OWNER_EMAIL:?set OWNER_EMAIL in .env}
     depends_on:
       db:
         condition: service_healthy
@@ -36,6 +40,12 @@ services:
     restart: unless-stopped
     environment:
       DATABASE_URL: *database-url
+      # Sign-in: the secret of the sign-in cookies and the address the links in emails lead to
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:?set BETTER_AUTH_SECRET in .env}
+      BETTER_AUTH_URL: ${BETTER_AUTH_URL:?set BETTER_AUTH_URL in .env}
+      # Where sign-in emails go (Resend on the server) and their sender
+      SMTP_URL: ${SMTP_URL:?set SMTP_URL in .env}
+      EMAIL_FROM: ${EMAIL_FROM:?set EMAIL_FROM in .env}
     # Loopback only: the outside world reaches the app through nginx
     ports:
       - "127.0.0.1:3000:3000"

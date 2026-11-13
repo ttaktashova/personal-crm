@@ -1,12 +1,13 @@
 "use server";
 
-import { eq, sql } from "drizzle-orm";
+import { and, eq, inArray, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 
 import { runQuery } from "@/db";
 import { contacts, interactions } from "@/db/schema";
 import { todayIsoDate } from "@/lib/dates";
 import { parseId } from "@/lib/ids";
+import { requireUser } from "@/lib/session";
 import {
   DEFAULT_INTERACTION_SUMMARY,
   interactionInputSchema,
@@ -16,6 +17,8 @@ import {
 
 // Revenge records never touch contacts.updated_at: "изменён" is about the card fields.
 // Every change revalidates the main page too: "Пора мстить" is counted from the records.
+// Every action starts with the signed-in user. Records belong to the contact's owner: another
+// user's contact or record answers "not-found", like a deleted one.
 
 export type SaveInteractionResult =
   | { status: "saved" }
@@ -25,8 +28,9 @@ export type SaveInteractionResult =
 // Insert from a select on contacts: a deleted contact gives no row to insert,
 // which is easier to tell than a foreign key error wrapped by the driver.
 // Plain SQL: Drizzle's insert-select would also list the identity id column.
-// Returns false when the contact is gone.
+// Returns false when the contact is gone or is not the owner's.
 async function insertInteraction(
+  ownerId: number,
   contactId: number,
   occurredOn: string,
   summary: string,
@@ -36,17 +40,22 @@ async function insertInteraction(
       insert into ${interactions} (contact_id, occurred_on, summary)
       select ${contacts.id}, ${occurredOn}::date, ${summary}::text
       from ${contacts}
-      where ${contacts.id} = ${contactId}
+      where ${contacts.id} = ${contactId} and ${contacts.ownerId} = ${ownerId}
       returning id
     `),
   );
   return inserted.length > 0;
 }
 
+// The ids of the owner's contacts, for the records that belong to them.
+const ownContactIds = (ownerId: number) =>
+  sql`(select ${contacts.id} from ${contacts} where ${contacts.ownerId} = ${ownerId})`;
+
 export async function addInteraction(
   contactId: unknown,
   input: unknown,
 ): Promise<SaveInteractionResult> {
+  const user = await requireUser();
   const id = parseId(contactId);
   if (id === null) {
     return { status: "not-found" };
@@ -58,7 +67,7 @@ export async function addInteraction(
   }
 
   const { occurredOn, summary } = parsed.data;
-  if (!(await insertInteraction(id, occurredOn, summary))) {
+  if (!(await insertInteraction(user.id, id, occurredOn, summary))) {
     return { status: "not-found" };
   }
 
@@ -72,12 +81,13 @@ export type MarkContactedResult = { status: "saved" } | { status: "not-found" };
 // "Отомстил" on the main page: a record for today with the default text, no window.
 // Today is taken here on the server, not from the browser.
 export async function markContacted(contactId: unknown): Promise<MarkContactedResult> {
+  const user = await requireUser();
   const id = parseId(contactId);
   if (id === null) {
     return { status: "not-found" };
   }
 
-  if (!(await insertInteraction(id, todayIsoDate(), DEFAULT_INTERACTION_SUMMARY))) {
+  if (!(await insertInteraction(user.id, id, todayIsoDate(), DEFAULT_INTERACTION_SUMMARY))) {
     return { status: "not-found" };
   }
 
@@ -90,6 +100,7 @@ export async function updateInteraction(
   interactionId: unknown,
   input: unknown,
 ): Promise<SaveInteractionResult> {
+  const user = await requireUser();
   const id = parseId(interactionId);
   if (id === null) {
     return { status: "not-found" };
@@ -104,7 +115,7 @@ export async function updateInteraction(
     db
       .update(interactions)
       .set(parsed.data)
-      .where(eq(interactions.id, id))
+      .where(and(eq(interactions.id, id), inArray(interactions.contactId, ownContactIds(user.id))))
       .returning({ contactId: interactions.contactId }),
   );
 
@@ -120,6 +131,7 @@ export async function updateInteraction(
 export type DeleteInteractionResult = { status: "deleted" } | { status: "not-found" };
 
 export async function deleteInteraction(interactionId: unknown): Promise<DeleteInteractionResult> {
+  const user = await requireUser();
   const id = parseId(interactionId);
   if (id === null) {
     return { status: "not-found" };
@@ -128,7 +140,7 @@ export async function deleteInteraction(interactionId: unknown): Promise<DeleteI
   const [deleted] = await runQuery("deleteInteraction", (db) =>
     db
       .delete(interactions)
-      .where(eq(interactions.id, id))
+      .where(and(eq(interactions.id, id), inArray(interactions.contactId, ownContactIds(user.id))))
       .returning({ contactId: interactions.contactId }),
   );
 

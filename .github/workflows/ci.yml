@@ -86,6 +86,14 @@ jobs:
           --health-interval 5s
           --health-timeout 5s
           --health-retries 10
+      # The mail catcher, the same as in docker-compose.yml: the app under test sends its
+      # sign-in emails here (SMTP 1025), the tests take the links from its API (8025).
+      # No real email leaves CI.
+      mailpit:
+        image: axllent/mailpit:v1.33.1
+        ports:
+          - 1025:1025
+          - 8025:8025
     env:
       # The tests run on personal_crm_e2e_test, which they create themselves
       DATABASE_URL: postgres://postgres@127.0.0.1:5432/personal_crm

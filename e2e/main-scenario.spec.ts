@@ -1,11 +1,16 @@
 import { expect, test, type Page } from "@playwright/test";
 
 import { cardField } from "./contact-card";
-import { addContacts, resetDatabase } from "./database";
+import { addContacts, addUser, resetDatabase } from "./database";
+import { clearInbox } from "./mailpit";
+import { signIn } from "./sign-in";
 
 // The main scenario of specs/01-продуктовая-идея.md, in a real browser against the app
 // and a real database: open the list → add a person → find them by name → add a note →
-// the card keeps it, and another browser sees the same contacts.
+// the card keeps it, and another browser sees the same contacts. Sign-in has tests of its own
+// (e2e/sign-in.spec.ts): here the owner signs in before the steps, and in the other browser too.
+
+const OWNER = "owner@example.com";
 
 // 12 × 5 = 60 people, already in alphabetical order: more than one page of 50.
 const SURNAMES = [
@@ -56,14 +61,17 @@ async function expectPages(page: Page, current: number, last: number) {
 
 test.beforeEach(async () => {
   await resetDatabase();
+  await clearInbox();
   // Saved in reverse, so the order of the ids is not the alphabet: the list has to sort by name.
-  await addContacts(PEOPLE.toReversed());
+  await addContacts(await addUser(OWNER), PEOPLE.toReversed());
 });
 
 test("main scenario: open the list, add a person, find them, add a note", async ({
   page,
   browser,
 }) => {
+  await signIn(page, OWNER);
+
   await test.step("the list opens on the first page, the rest are behind the switcher", async () => {
     await page.goto("/");
     await expect(page.getByText("60 контактов", { exact: true })).toBeVisible();
@@ -143,6 +151,7 @@ test("main scenario: open the list, add a person, find them, add a note", async 
     const otherBrowser = await browser.newContext();
     try {
       const other = await otherBrowser.newPage();
+      await signIn(other, OWNER);
 
       await other.goto(page.url());
       await expect(other.getByRole("heading", { level: 1 })).toHaveText(NEW_PERSON);

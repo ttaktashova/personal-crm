@@ -24,6 +24,10 @@ const db = drizzle(client, { schema });
 
 export type Database = typeof db;
 
+// Only for Better Auth's adapter (src/lib/auth.ts), which needs the Drizzle instance itself:
+// everything else goes through runQuery. auth.ts keeps the adapter's errors out of the log.
+export const authDatabase = db;
+
 // Runs the queries in `run` and replaces any error with a DatabaseError that keeps only
 // codes and schema names. `label` names the query in the log, usually the function it
 // is in: server code is minified, so the stack alone does not tell.

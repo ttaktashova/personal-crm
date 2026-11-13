@@ -20,6 +20,7 @@ import {
   resolvePageSize,
 } from "@/lib/pagination";
 import { toSearchWords } from "@/lib/search";
+import { requireUser } from "@/lib/session";
 
 // The layout's title template skips pages of its own segment, so the suffix is spelled out here.
 export const metadata: Metadata = {
@@ -60,19 +61,21 @@ export default function ContactsPage({ searchParams }: PageProps<"/">) {
 
 // "Добавить черта" with the groups its window chooses from.
 async function NewContact() {
-  return <NewContactDialog groups={await listGroups()} />;
+  const user = await requireUser();
+  return <NewContactDialog groups={await listGroups(user.id)} />;
 }
 
 // Reads the database on every request, so another browser sees the same, fresh list.
 // Only one page goes to the browser: ?group=, ?page=, ?q= and ?size= pick which one.
 async function Directory({ searchParams }: Pick<PageProps<"/">, "searchParams">) {
+  const user = await requireUser();
   const params = await searchParams;
   const cookieStore = await cookies();
 
   // The size in the URL wins, then the one remembered in this browser, then 50.
   const pageSize = resolvePageSize(params.size, cookieStore.get(PAGE_SIZE_COOKIE)?.value);
   // A group that is not a number or is already deleted means "Все".
-  const groups = await listGroups();
+  const groups = await listGroups(user.id);
   const groupId = resolveGroupFilter(params.group, groups);
   const group = groups.find((item) => item.id === groupId) ?? null;
   const query = (firstValue(params.q) ?? "").trim();
@@ -81,10 +84,11 @@ async function Directory({ searchParams }: Pick<PageProps<"/">, "searchParams">)
   // After "Добавить черта" (/?added=42) open the page where the new contact stands.
   let page = parsePage(params.page);
   if (highlightId !== null && params.page === undefined) {
-    page = (await findContactPage(highlightId, pageSize)) ?? 1;
+    page = (await findContactPage(user.id, highlightId, pageSize)) ?? 1;
   }
 
   const list = await listContactsPage({
+    ownerId: user.id,
     page,
     pageSize,
     words: toSearchWords(query),

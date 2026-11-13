@@ -4,13 +4,14 @@
 // is refused, so the main database is never touched.
 
 import { recreateMigratedDatabase } from "../src/test/database-admin";
+import { TEST_OWNER_EMAIL } from "../src/test/owner";
 
 async function main() {
   const url = process.env.DATABASE_URL;
   if (!url) {
     throw new Error("DATABASE_URL is not set: run the e2e tests with `pnpm test:e2e`");
   }
-  await recreateMigratedDatabase(url);
+  await recreateMigratedDatabase(url, TEST_OWNER_EMAIL);
 }
 
 main().catch((error) => {
