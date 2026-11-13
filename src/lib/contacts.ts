@@ -18,6 +18,10 @@ export type ContactListItem = {
   groups: ContactGroup[]; // by name, all of them
 };
 
+// Every function here takes the owner first: a user sees and changes only their own contacts.
+// Another user's contact answers the same as a deleted one.
+const ownedBy = (ownerId: number) => eq(contacts.ownerId, ownerId);
+
 const listItemColumns = {
   id: contacts.id,
   name: contacts.name,
@@ -38,7 +42,7 @@ export type ContactListPage = {
   contacts: ContactListItem[];
   totalCount: number; // the people of the chosen group, or everybody without a group
   matchedCount: number; // of them, those the search found
-  allCount: number; // all contacts: tells an empty group from an empty list
+  allCount: number; // all the owner's contacts: tells an empty group from an empty list
   page: number; // clamped to [1, pageCount]
   pageCount: number;
 };
@@ -47,16 +51,19 @@ export type ContactListPage = {
 // contains every word, in any order. Without words every contact matches.
 // With `groupId` everything — the counts, the search and the page — is about that group's people.
 export async function listContactsPage({
+  ownerId,
   page,
   pageSize,
   words,
   groupId,
 }: {
+  ownerId: number;
   page: number;
   pageSize: number;
   words: string[];
   groupId: number | null;
 }): Promise<ContactListPage> {
+  const owned = ownedBy(ownerId);
   const match =
     words.length > 0
       ? and(...words.map((word) => sql`${nameForSearch} like ${`%${escapeLike(word)}%`}`))
@@ -83,8 +90,8 @@ export async function listContactsPage({
           : count(),
       })
       .from(contacts)
-      .where(inGroup);
-    const allCount = groupId === null ? counts.totalCount : await db.$count(contacts);
+      .where(and(owned, inGroup));
+    const allCount = groupId === null ? counts.totalCount : await db.$count(contacts, owned);
 
     // A page past the last one opens the last one, without a redirect.
     const pageCount = Math.max(1, Math.ceil(counts.matchedCount / pageSize));
@@ -93,7 +100,7 @@ export async function listContactsPage({
     const rows = await db
       .select(listItemColumns)
       .from(contacts)
-      .where(and(inGroup, match))
+      .where(and(owned, inGroup, match))
       .orderBy(nameOrder, asc(contacts.id))
       .limit(pageSize)
       .offset((shownPage - 1) * pageSize);
@@ -102,27 +109,37 @@ export async function listContactsPage({
   });
 
   const { rows, ...rest } = list;
-  const groupsByContact = await listContactGroups(rows.map((row) => row.id));
+  const groupsByContact = await listContactGroups(
+    ownerId,
+    rows.map((row) => row.id),
+  );
   return {
     contacts: rows.map((row) => ({ ...row, groups: groupsByContact.get(row.id) ?? [] })),
     ...rest,
   };
 }
 
-// The page where a contact stands in the whole list (no search), or null if it is gone.
-export async function findContactPage(id: number, pageSize: number): Promise<number | null> {
+// The page where a contact stands in the owner's whole list (no search), or null if it is gone.
+export async function findContactPage(
+  ownerId: number,
+  id: number,
+  pageSize: number,
+): Promise<number | null> {
   return runQuery("findContactPage", async (db) => {
     const [target] = await db
       .select({ name: contacts.name })
       .from(contacts)
-      .where(eq(contacts.id, id))
+      .where(and(eq(contacts.id, id), ownedBy(ownerId)))
       .limit(1);
     if (!target) return null;
 
     // Contacts before it in the list order: (name, id) compared as a pair.
     const before = await db.$count(
       contacts,
-      sql`(${nameOrder}, ${contacts.id}) < (${target.name}::text collate "ru-RU-x-icu", ${id}::integer)`,
+      and(
+        ownedBy(ownerId),
+        sql`(${nameOrder}, ${contacts.id}) < (${target.name}::text collate "ru-RU-x-icu", ${id}::integer)`,
+      ),
     );
     return Math.floor(before / pageSize) + 1;
   });
@@ -130,20 +147,25 @@ export async function findContactPage(id: number, pageSize: number): Promise<num
 
 // The contact and its groups are saved in one transaction: either all of it or none, so
 // a failed save leaves neither a half-saved contact nor a group that nobody asked for.
-export async function insertContact(input: ContactInput): Promise<{ id: number }> {
+export async function insertContact(ownerId: number, input: ContactInput): Promise<{ id: number }> {
   const { groupIds, newGroupNames, ...fields } = input;
 
   return runQuery("insertContact", (db) =>
     db.transaction(async (tx) => {
-      const [created] = await tx.insert(contacts).values(fields).returning({ id: contacts.id });
-      await setContactGroups(tx, created.id, { groupIds, newGroupNames });
+      const [created] = await tx
+        .insert(contacts)
+        .values({ ...fields, ownerId })
+        .returning({ id: contacts.id });
+      await setContactGroups(tx, ownerId, created.id, { groupIds, newGroupNames });
       return created;
     }),
   );
 }
 
-// Null when the contact is gone. "изменён" moves on every save, including a change of groups only.
+// Null when the contact is gone or is not the owner's. "изменён" moves on every save,
+// including a change of groups only.
 export async function updateContactById(
+  ownerId: number,
   id: number,
   input: ContactInput,
 ): Promise<{ id: number } | null> {
@@ -154,20 +176,25 @@ export async function updateContactById(
       const [updated] = await tx
         .update(contacts)
         .set({ ...fields, updatedAt: sql`now()` })
-        .where(eq(contacts.id, id))
+        .where(and(eq(contacts.id, id), ownedBy(ownerId)))
         .returning({ id: contacts.id });
       if (!updated) return null;
 
-      await setContactGroups(tx, updated.id, { groupIds, newGroupNames });
+      await setContactGroups(tx, ownerId, updated.id, { groupIds, newGroupNames });
       return updated;
     }),
   );
 }
 
+// Null when the contact is gone or is not the owner's: the card shows «Контакт не найден».
 // Deduplicated per request: the page and its metadata both read the same contact.
-export const getContact = cache(async (id: number) => {
+export const getContact = cache(async (ownerId: number, id: number) => {
   const [contact] = await runQuery("getContact", (db) =>
-    db.select().from(contacts).where(eq(contacts.id, id)).limit(1),
+    db
+      .select()
+      .from(contacts)
+      .where(and(eq(contacts.id, id), ownedBy(ownerId)))
+      .limit(1),
   );
   return contact ?? null;
 });

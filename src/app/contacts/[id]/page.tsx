@@ -14,6 +14,7 @@ import { formatLongDate } from "@/lib/format";
 import { listContactGroups, listGroups } from "@/lib/groups";
 import { parseId } from "@/lib/ids";
 import { listInteractions } from "@/lib/interactions";
+import { requireUser } from "@/lib/session";
 import { cn } from "@/lib/utils";
 
 const EDIT_NOTICE_THRESHOLD_MS = 60_000;
@@ -29,8 +30,10 @@ const FIELD_ROW_CLASS =
 const FIELD_LABEL_CLASS = "text-sm text-muted-foreground sm:text-ui";
 
 export async function generateMetadata({ params }: PageProps<"/contacts/[id]">): Promise<Metadata> {
+  const user = await requireUser();
   const id = parseId((await params).id);
-  const contact = id === null ? null : await getContact(id);
+  // Another user's contact is «Контакт не найден» too: its name never reaches the tab.
+  const contact = id === null ? null : await getContact(user.id, id);
   return { title: contact?.name ?? "Контакт не найден" };
 }
 
@@ -48,14 +51,15 @@ export default function ContactPage({ params }: PageProps<"/contacts/[id]">) {
 }
 
 async function ContactCard({ params }: Pick<PageProps<"/contacts/[id]">, "params">) {
+  const user = await requireUser();
   const id = parseId((await params).id);
   if (id === null) notFound();
 
   const [contact, interactions, groupsByContact, allGroups] = await Promise.all([
-    getContact(id),
-    listInteractions(id),
-    listContactGroups([id]),
-    listGroups(),
+    getContact(user.id, id),
+    listInteractions(user.id, id),
+    listContactGroups(user.id, [id]),
+    listGroups(user.id),
   ]);
   if (!contact) notFound();
   const contactGroups = groupsByContact.get(id) ?? [];

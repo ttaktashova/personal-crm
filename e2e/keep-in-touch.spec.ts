@@ -7,10 +7,13 @@ import {
   addContact,
   addGroup,
   addRevenge,
+  addUser,
   deleteContact,
   resetDatabase,
   type ContactFrequency,
 } from "./database";
+import { clearInbox } from "./mailpit";
+import { signIn } from "./sign-in";
 
 // "Пора мстить" of openspec/specs/keep-in-touch/spec.md, in a real browser against the app
 // and a real database. The rules of the term and the order have unit tests; here are
@@ -115,8 +118,16 @@ async function chooseFrequency(page: Page, dialog: Locator, label: string) {
   await expect(field).toContainText(label);
 }
 
-test.beforeEach(async () => {
+// Without a sign-in the app opens the sign-in page: every test signs in first.
+const OWNER = "owner@example.com";
+// The id of the signed-in user: the people of a test are theirs.
+let owner: number;
+
+test.beforeEach(async ({ page }) => {
   await resetDatabase();
+  await clearInbox();
+  owner = await addUser(OWNER);
+  await signIn(page, OWNER);
 });
 
 test("a person with a frequency is due at once, and «Отомстил» settles it", async ({ page }) => {
@@ -178,13 +189,13 @@ test("a person with a frequency is due at once, and «Отомстил» settles
 });
 
 test("«Простить» and «Не задано» take a person out of the block", async ({ page }) => {
-  const boris = await addContact({
+  const boris = await addContact(owner, {
     name: "Борис Гусев",
     contactFrequency: "month",
     createdAt: new Date(`${daysAgo(200)}T09:00:00Z`),
   });
   await addRevenge(boris, daysAgo(60));
-  const vera = await addContact({ name: "Вера Лунина", contactFrequency: "month" });
+  const vera = await addContact(owner, { name: "Вера Лунина", contactFrequency: "month" });
   await addRevenge(vera, daysAgo(60));
 
   await test.step("«Простить» takes Борис out at once", async () => {
@@ -240,18 +251,18 @@ test("the block shows five, the rest on demand, and only the chosen group", asyn
   // Saved in reverse, so the order of the ids is not the order of the block.
   const ids = new Map<string, number>();
   for (const person of DUE.toReversed()) {
-    const id = await addContact({ name: person.name, contactFrequency: person.frequency });
+    const id = await addContact(owner, { name: person.name, contactFrequency: person.frequency });
     if (person.lastRevengeDaysAgo !== null)
       await addRevenge(id, daysAgo(person.lastRevengeDaysAgo));
     ids.set(person.name, id);
   }
   const idsOf = (names: string[]) => names.map((name) => ids.get(name)!);
   // Eight, six and five of the twelve, and a group where nobody is due.
-  await addGroup("Друзья", idsOf(DUE_NAMES.slice(0, 8)));
+  await addGroup(owner, "Друзья", idsOf(DUE_NAMES.slice(0, 8)));
   const neighbours = ["Алла Ершова", "Борис Гусев", "Зоя Ким", "Иван Седов", "Кира Лосева"];
-  await addGroup("Соседи", idsOf([...neighbours, "Лев Тихонов"]));
-  await addGroup("Семья", idsOf(DUE_NAMES.slice(3, 8)));
-  await addGroup("Теннис", [await addContact({ name: "Мария Штерн" })]);
+  await addGroup(owner, "Соседи", idsOf([...neighbours, "Лев Тихонов"]));
+  await addGroup(owner, "Семья", idsOf(DUE_NAMES.slice(3, 8)));
+  await addGroup(owner, "Теннис", [await addContact(owner, { name: "Мария Штерн" })]);
   const groups = page.getByRole("navigation", { name: "Группы" });
 
   await test.step("the first five above the search, then «+ещё 7 людишек»", async () => {
@@ -324,9 +335,9 @@ test("icons on a phone; a deleted contact or no network shows a message", async 
   page,
   context,
 }) => {
-  const anna = await addContact({ name: "Анна Смирнова", contactFrequency: "week" });
-  const boris = await addContact({ name: "Борис Гусев", contactFrequency: "week" });
-  await addContact({ name: "Вера Лунина", contactFrequency: "week" });
+  const anna = await addContact(owner, { name: "Анна Смирнова", contactFrequency: "week" });
+  const boris = await addContact(owner, { name: "Борис Гусев", contactFrequency: "week" });
+  await addContact(owner, { name: "Вера Лунина", contactFrequency: "week" });
 
   await test.step("on a phone: two 44×44 icons right of the name, named for a screen reader", async () => {
     await page.setViewportSize({ width: 375, height: 800 });

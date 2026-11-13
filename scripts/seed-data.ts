@@ -5,7 +5,7 @@ import { CONTACT_FREQUENCIES } from "../src/lib/contact-frequency";
 
 // A contact with its revenge history: one record per dated note, as the notes migration would copy.
 export type SeedContact = {
-  contact: NewContact;
+  contact: Omit<NewContact, "ownerId">;
   interactions: Pick<NewInteraction, "occurredOn" | "summary">[];
   // Where in the list of existing groups each of the contact's groups stands: numbers from 0
   // up to 1, 0 to 3 of them. The seed script turns them into real groups, because the

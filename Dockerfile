@@ -14,9 +14,12 @@ FROM base AS build
 RUN corepack enable
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-# The db module needs a connection string when pages are loaded during the build;
-# nothing connects to it. The real one comes from the server at runtime.
-RUN DATABASE_URL=postgres://build:build@127.0.0.1:1/build COREPACK_ENABLE_DOWNLOAD_PROMPT=0 pnpm build
+# The db module needs a connection string and the sign-in module a secret when pages are loaded
+# during the build; nothing connects or signs with them. Both live only in this command, never in
+# the image: the real ones come from the server at runtime. The secret is random on every build.
+RUN DATABASE_URL=postgres://build:build@127.0.0.1:1/build \
+    BETTER_AUTH_SECRET="$(head -c 32 /dev/urandom | od -An -tx1 | tr -d ' \n')" \
+    COREPACK_ENABLE_DOWNLOAD_PROMPT=0 pnpm build
 # The migration runner needs the full drizzle-orm and postgres packages (both have no
 # dependencies); the standalone output only keeps the files the app itself imports.
 RUN mkdir -p /migrate/node_modules \

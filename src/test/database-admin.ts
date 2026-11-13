@@ -1,8 +1,9 @@
 import { fileURLToPath } from "node:url";
 
-import { drizzle } from "drizzle-orm/postgres-js";
-import { migrate } from "drizzle-orm/postgres-js/migrator";
 import postgres from "postgres";
+
+// Relative import: the e2e setup loads this file without the "@/" alias.
+import { applyMigrations } from "../db/migrate";
 
 import { assertTestDatabaseName, readDatabaseName, toAdminDatabaseUrl } from "./database-url";
 
@@ -50,14 +51,12 @@ export async function recreateDatabase(databaseUrl: string): Promise<void> {
   });
 }
 
-// The same, with all migrations applied: the database as the app expects it, still empty.
-export async function recreateMigratedDatabase(databaseUrl: string): Promise<void> {
+// The same, with all migrations applied: the database as the app expects it. The migrations
+// create the user with `ownerEmail` and give it the starting groups (see src/db/migrate.ts).
+export async function recreateMigratedDatabase(
+  databaseUrl: string,
+  ownerEmail: string,
+): Promise<void> {
   await recreateDatabase(databaseUrl);
-
-  const client = postgres(databaseUrl, { max: 1, onnotice: () => {} });
-  try {
-    await migrate(drizzle(client), { migrationsFolder });
-  } finally {
-    await client.end();
-  }
+  await applyMigrations(databaseUrl, ownerEmail, migrationsFolder);
 }
