@@ -1,16 +1,16 @@
 "use client";
 
-import { BellOffIcon, CheckIcon, ChevronDownIcon } from "lucide-react";
+import { BellOffIcon, CheckIcon } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState, useTransition } from "react";
+import { useTransition } from "react";
 import { toast } from "sonner";
 
 import { stopReminders, type StopRemindersResult } from "@/app/contacts/actions";
 import { markContacted, type MarkContactedResult } from "@/app/contacts/interaction-actions";
+import { ShowMoreItem, useCollapsedList } from "@/components/show-more";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { pluralize } from "@/lib/format";
 
 // Texts are ready on the server, where "today" is known.
 export type DueContactItem = {
@@ -20,26 +20,13 @@ export type DueContactItem = {
   due: string; // "пора со вчера" or "ещё не мстили"
 };
 
-const COLLAPSED_COUNT = 5;
-
 // Phone: a 44×44 icon. Computer: a 36px text button, like "Отомстил" in the card.
 const QUICK_BUTTON_CLASS = "sm:h-9 sm:w-auto sm:rounded-lg sm:px-3.5 sm:text-caption";
 
 // The whole list comes from the server. The actions revalidate the main page,
 // so after "Отомстил" or "Простить" a list without that contact arrives.
 export function DueContactsList({ contacts }: { contacts: DueContactItem[] }) {
-  const [expanded, setExpanded] = useState(false);
-  const listRef = useRef<HTMLUListElement>(null);
-
-  const visible = expanded ? contacts : contacts.slice(0, COLLAPSED_COUNT);
-  const hiddenCount = contacts.length - visible.length;
-
-  // "+ещё …" disappears on click, so focus moves to the first contact it revealed.
-  useEffect(() => {
-    if (expanded) {
-      listRef.current?.querySelectorAll<HTMLElement>("li a")[COLLAPSED_COUNT]?.focus();
-    }
-  }, [expanded]);
+  const { listRef, visible, hiddenCount, expand } = useCollapsedList(contacts);
 
   return (
     <section
@@ -57,19 +44,7 @@ export function DueContactsList({ contacts }: { contacts: DueContactItem[] }) {
           {visible.map((contact) => (
             <DueContactRow key={contact.id} contact={contact} />
           ))}
-          {hiddenCount > 0 && (
-            <li className="border-t">
-              <button
-                type="button"
-                aria-expanded="false"
-                onClick={() => setExpanded(true)}
-                className="flex h-13 w-full items-center justify-center gap-2 px-4 text-ui font-semibold text-primary outline-none transition-colors hover:bg-muted focus-visible:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:ring-inset sm:justify-start sm:px-5"
-              >
-                +ещё {hiddenCount} {pluralize(hiddenCount, ["людишка", "людишки", "людишек"])}
-                <ChevronDownIcon aria-hidden className="size-4" />
-              </button>
-            </li>
-          )}
+          <ShowMoreItem hiddenCount={hiddenCount} onClick={expand} />
         </ul>
       </TooltipProvider>
     </section>

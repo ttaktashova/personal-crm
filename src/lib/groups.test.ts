@@ -232,6 +232,7 @@ describe("each user's own groups", () => {
       email: "",
       notes: "",
       contactFrequency: null,
+      birthday: null,
       groupIds: [],
       newGroupNames: [],
       ...overrides,

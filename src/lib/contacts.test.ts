@@ -37,6 +37,7 @@ function contactInput(overrides: Partial<ContactInput> = {}): ContactInput {
     email: "",
     notes: "",
     contactFrequency: null,
+    birthday: null,
     groupIds: [],
     newGroupNames: [],
     ...overrides,

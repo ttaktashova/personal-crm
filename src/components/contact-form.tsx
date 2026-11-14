@@ -7,7 +7,14 @@ import { toast } from "sonner";
 import { createContact, updateContact } from "@/app/contacts/actions";
 import { GroupPicker, type GroupSelection } from "@/components/group-picker";
 import { Button } from "@/components/ui/button";
-import { Field, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
+import {
+  Field,
+  FieldError,
+  FieldGroup,
+  FieldLabel,
+  FieldLegend,
+  FieldSet,
+} from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -17,6 +24,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { BIRTH_MONTHS } from "@/lib/birthday";
 import {
   CONTACT_FREQUENCIES,
   CONTACT_FREQUENCY_LABELS,
@@ -39,23 +47,42 @@ const EMPTY_CONTACT: ContactFormInitialValues = {
   email: "",
   notes: "",
   contactFrequency: null,
+  birthday: null,
   groupIds: [],
 };
 
+// The three parts of "Дата рождения": inputs of their own, one field for the schema.
+const BIRTHDAY_INPUTS = { day: "birthDay", month: "birthMonth", year: "birthYear" } as const;
+
 function readForm(form: HTMLFormElement, groups: GroupSelection): ContactFormValues {
   const data = new FormData(form);
-  const text = (field: keyof ContactFormValues) => String(data.get(field) ?? "");
+  const text = (field: string) => String(data.get(field) ?? "");
   return {
     name: text("name"),
     howWeMet: text("howWeMet"),
     phone: text("phone"),
     email: text("email"),
+    // The month list submits "1"…"12", or "" for "Не указан".
+    birthday: {
+      day: text(BIRTHDAY_INPUTS.day),
+      month: text(BIRTHDAY_INPUTS.month),
+      year: text(BIRTHDAY_INPUTS.year),
+    },
     notes: text("notes"),
     // Checked by the schema: anything but a listed value is rejected.
     contactFrequency: text("contactFrequency") as ContactFormValues["contactFrequency"],
     ...groups,
   };
 }
+
+// The null item clears the month; the list then shows the grey hint "Месяц" instead.
+const MONTH_ITEMS = [
+  { label: "Не указан", value: null },
+  ...BIRTH_MONTHS.map((label, index) => ({ label, value: index + 1 })),
+];
+
+// Where the focus goes for a field with an error: its input, or the first part of it.
+const FOCUS_TARGETS: Partial<Record<ContactField, string>> = { birthday: BIRTHDAY_INPUTS.day };
 
 // The null item is "Не задано": the select shows its label and submits "".
 const FREQUENCY_ITEMS = [
@@ -91,9 +118,10 @@ export function ContactForm(props: ContactFormProps) {
   });
 
   function focusFirstInvalid(fieldErrors: ContactFieldErrors) {
-    const firstField = Object.keys(fieldErrors)[0];
+    const firstField = Object.keys(fieldErrors)[0] as ContactField | undefined;
     if (firstField) {
-      formRef.current?.querySelector<HTMLElement>(`[name="${firstField}"]`)?.focus();
+      const name = FOCUS_TARGETS[firstField] ?? firstField;
+      formRef.current?.querySelector<HTMLElement>(`[name="${name}"]`)?.focus();
     }
   }
 
@@ -248,6 +276,71 @@ export function ContactForm(props: ContactFormProps) {
             <FieldError>{errors.email}</FieldError>
           </Field>
         </div>
+
+        {/* Not type="date": that one needs a year. The parts are named for a screen reader,
+            the group reads as "Дата рождения". One error for the three, under the row. */}
+        <FieldSet
+          data-invalid={!!errors.birthday}
+          className="gap-2 data-[invalid=true]:text-destructive"
+        >
+          <FieldLegend variant="label" className="mb-2 leading-snug">
+            Дата рождения
+          </FieldLegend>
+          <div className="flex gap-2">
+            <Input
+              name={BIRTHDAY_INPUTS.day}
+              aria-label="День"
+              placeholder="День"
+              inputMode="numeric"
+              maxLength={2}
+              defaultValue={initialValues.birthday?.day ?? ""}
+              autoComplete="off"
+              aria-invalid={!!errors.birthday}
+              onChange={() => clearError("birthday")}
+              className="h-11 w-18 shrink-0"
+            />
+            <Select
+              name={BIRTHDAY_INPUTS.month}
+              items={MONTH_ITEMS}
+              defaultValue={initialValues.birthday?.month ?? null}
+              onValueChange={() => clearError("birthday")}
+            >
+              <SelectTrigger
+                aria-label="Месяц"
+                aria-invalid={!!errors.birthday}
+                className="min-w-0 flex-1 rounded-xl bg-background px-3 text-base data-[size=default]:h-11 md:text-sm"
+              >
+                <SelectValue>
+                  {(month: number | null) => (month === null ? "Месяц" : BIRTH_MONTHS[month - 1])}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                {MONTH_ITEMS.map((item) => (
+                  <SelectItem
+                    key={item.label}
+                    value={item.value}
+                    className="py-2.5 pl-2.5 text-base md:py-2 md:text-sm"
+                  >
+                    {item.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Input
+              name={BIRTHDAY_INPUTS.year}
+              aria-label="Год"
+              placeholder="Год"
+              inputMode="numeric"
+              maxLength={4}
+              defaultValue={initialValues.birthday?.year ?? ""}
+              autoComplete="off"
+              aria-invalid={!!errors.birthday}
+              onChange={() => clearError("birthday")}
+              className="h-11 w-20 shrink-0"
+            />
+          </div>
+          <FieldError>{errors.birthday}</FieldError>
+        </FieldSet>
 
         <Field data-invalid={!!errors.contactFrequency}>
           <FieldLabel htmlFor="contactFrequency">Как часто припоминать</FieldLabel>

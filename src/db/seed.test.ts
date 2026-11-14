@@ -5,10 +5,12 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
 import { runQuery } from "@/db";
 import { contacts, users } from "@/db/schema";
+import { contactInputSchema } from "@/lib/contact-schema";
 import { addContacts, addGroup, addUser } from "@/test/factories";
 import { TEST_OWNER_EMAIL } from "@/test/owner";
 import { resetDatabase } from "@/test/reset-database";
 
+import { generateContacts } from "../../scripts/seed-data";
 import { seedDatabase, seedMessage } from "../../scripts/seed-database";
 
 // "Тестовые данные у владельца" of the data-ownership spec: pnpm db:seed fills the list of the
@@ -98,5 +100,49 @@ describe("seedDatabase", () => {
       "OWNER_EMAIL is not set or is not an email",
     );
     expect(await runQuery("users", (database) => database.$count(users))).toBe(0);
+  });
+});
+
+// The test data has birthdays, so «Скоро день рождения» has people to show.
+describe("generateContacts: birthdays", () => {
+  const people = generateContacts(1000).map((person) => person.contact);
+  const withBirthday = people.filter((contact) => contact.birthDay != null);
+
+  it("gives a birthday to 25–35% of the contacts", () => {
+    expect(withBirthday.length).toBeGreaterThanOrEqual(250);
+    expect(withBirthday.length).toBeLessThanOrEqual(350);
+  });
+
+  it("leaves the year out for some of them", () => {
+    expect(withBirthday.some((contact) => contact.birthYear == null)).toBe(true);
+    expect(withBirthday.some((contact) => contact.birthYear != null)).toBe(true);
+  });
+
+  it("gives only dates the window would accept", () => {
+    for (const contact of withBirthday) {
+      const result = contactInputSchema.safeParse({
+        name: contact.name,
+        howWeMet: "",
+        phone: "",
+        email: "",
+        notes: "",
+        contactFrequency: "",
+        birthday: {
+          day: String(contact.birthDay),
+          month: String(contact.birthMonth),
+          year: contact.birthYear == null ? "" : String(contact.birthYear),
+        },
+      });
+      expect(result.success, `${contact.birthDay}.${contact.birthMonth}.${contact.birthYear}`).toBe(
+        true,
+      );
+    }
+  });
+
+  it("leaves the others without any part of a birthday", () => {
+    for (const contact of people.filter((person) => person.birthDay == null)) {
+      expect(contact.birthMonth ?? null).toBeNull();
+      expect(contact.birthYear ?? null).toBeNull();
+    }
   });
 });
