@@ -7,10 +7,22 @@
 
 x-database-url: &database-url postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
 
+# Logs go to the server journal (journald), not to a file inside Docker: they outlive the container,
+# so a deploy or rollback that replaces it keeps the lines of the previous version. The system limits
+# the journal size and removes the oldest lines. Only these containers: the server-wide Docker
+# setting (/etc/docker/daemon.json) is not changed.
+# Every line carries CONTAINER_NAME (prod-app-1, staging-db-1, ...) and IMAGE_NAME (the app version);
+# the tag puts the container name into the plain output too. How to read them: README, «Логи».
+x-logging: &logging
+  driver: journald
+  options:
+    tag: "{{.Name}}"
+
 services:
   db:
     image: postgres:18-alpine
     restart: unless-stopped
+    logging: *logging
     # 0 is no limit (prod); staging gets a limit so it cannot take the memory prod needs
     mem_limit: ${DB_MEMORY_LIMIT:?DB_MEMORY_LIMIT is set by deploy/lib.sh}
     environment:
@@ -29,6 +41,7 @@ services:
   migrate:
     image: ${APP_IMAGE:?APP_IMAGE is set by deploy.sh}
     profiles: [migrate]
+    logging: *logging
     mem_limit: ${APP_MEMORY_LIMIT:?APP_MEMORY_LIMIT is set by deploy/lib.sh}
     working_dir: /app/migrate
     command: ["node", "migrate.mjs"]
@@ -43,6 +56,7 @@ services:
   app:
     image: ${APP_IMAGE:?APP_IMAGE is set by deploy.sh}
     restart: unless-stopped
+    logging: *logging
     mem_limit: ${APP_MEMORY_LIMIT:?APP_MEMORY_LIMIT is set by deploy/lib.sh}
     environment:
       DATABASE_URL: *database-url
