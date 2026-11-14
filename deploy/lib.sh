@@ -1,4 +1,4 @@
-# Shared by deploy.sh and restore.sh: paths, the compose command and the steps both of them need.
+# Shared by deploy.sh, backup.sh and restore.sh: paths, the compose command and the steps they need.
 # Sourced, not run. The calling script sets ENVIRONMENT (prod or staging) and FAIL_PREFIX before
 # sourcing it, and exports APP_IMAGE before using COMPOSE.
 # shellcheck shell=bash
@@ -11,8 +11,9 @@ fail() {
 APP_DIR=/opt/personal-crm
 # Backups are taken on prod only; restore.sh reads them for both environments
 BACKUP_DIR="$APP_DIR/backups"
-# Only the newest deploy backups are kept; copies taken before a restore are never removed automatically
-KEEP_DEPLOY_BACKUPS=10
+# The newest 7 backups of each kind are kept: taken by a deploy and daily ones. Copies taken before
+# a restore are never removed automatically.
+KEEP_BACKUPS=7
 # The compose.yaml next to this file: every environment has its own copy of deploy/
 DEPLOY_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
@@ -43,11 +44,20 @@ check_env_file() {
   [[ "$(stat -c %a "$ENV_FILE")" == 600 ]] || fail "$ENV_FILE must have permissions 600"
 }
 
-# One deploy or restore at a time per environment; the lock is released when the script exits.
+# One deploy, restore or backup at a time per environment; the lock is released when the script exits.
 # Prod and staging have separate locks, so they do not wait for each other.
 take_lock() {
   exec 9>"$LOCK_FILE"
-  flock -n 9 || fail "another deploy or restore of $ENVIRONMENT is running on this server, try again when it finishes"
+  flock -n 9 || fail "another deploy, restore or backup of $ENVIRONMENT is running on this server, try again when it finishes"
+}
+
+# Like take_lock, but if the lock is taken, first waits up to <seconds> for it (the daily backup
+# waits for a running deploy or restore instead of skipping the day)
+wait_for_lock() {
+  exec 9>"$LOCK_FILE"
+  flock -n 9 && return 0
+  echo "A deploy or restore of $ENVIRONMENT is running, waiting up to $1 seconds for it to finish"
+  flock -w "$1" 9 || fail "a deploy or restore of $ENVIRONMENT was still running after $1 seconds"
 }
 
 # The image of this environment's app container, running or stopped; nothing if there is no such container
@@ -69,7 +79,7 @@ image_version() {
 }
 
 # Dumps the prod database to $BACKUP_DIR/<Moscow time>_<kind>_<app version>.dump and sets BACKUP_FILE.
-#   kind: "deploy" or "before-restore"; app version: the version running when the backup is taken.
+#   kind: "deploy", "daily" or "before-restore"; app version: the version running when the backup is taken.
 # Returns non-zero if the backup was not saved; a half-written file never gets a .dump name.
 backup_db() {
   local kind="$1" version="$2" file partial
@@ -96,19 +106,20 @@ backup_db() {
   fi
   mv "$partial" "$file" || return 1
 
+  # shellcheck disable=SC2034 # read by the scripts that source this file
   BACKUP_FILE="$file"
   echo "Backup saved: $file ($(du -h "$file" | cut -f1))"
-  if [[ "$kind" == deploy ]]; then
-    prune_deploy_backups || true
+  if [[ "$kind" == deploy || "$kind" == daily ]]; then
+    prune_backups "$kind" || true
   fi
   return 0
 }
 
-# Keeps the newest $KEEP_DEPLOY_BACKUPS deploy backups. Names start with the time, so name order is time order.
-prune_deploy_backups() {
-  local old
-  find "$BACKUP_DIR" -maxdepth 1 -type f -name '*_deploy_*.dump' -printf '%f\n' |
-    sort | head -n "-$KEEP_DEPLOY_BACKUPS" | while read -r old; do
+# Keeps the newest $KEEP_BACKUPS backups of one kind. Names start with the time, so name order is time order.
+prune_backups() {
+  local kind="$1" old
+  find "$BACKUP_DIR" -maxdepth 1 -type f -name "*_${kind}_*.dump" -printf '%f\n' |
+    sort | head -n "-$KEEP_BACKUPS" | while read -r old; do
     rm -f "$BACKUP_DIR/$old" && echo "Removed old backup $old"
   done
 }

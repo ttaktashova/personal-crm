@@ -1,0 +1,89 @@
+name: Deploy staging
+
+# Every merge to main goes to staging only. Prod is deployed by hand: deploy-prod.yml
+on:
+  push:
+    branches: [main]
+
+# Runs go one at a time in the order of the commits, so an older commit never deploys over a newer
+# one; a newer push waits for the running one to finish
+concurrency:
+  group: deploy-staging
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  image:
+    name: Build image
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      image: ${{ steps.name.outputs.image }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Image name
+        id: name
+        run: echo "image=ghcr.io/${GITHUB_REPOSITORY,,}:${GITHUB_SHA}" >>"$GITHUB_OUTPUT"
+
+      - uses: docker/setup-buildx-action@v4
+
+      - uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # No provenance attestation: then one build is exactly one version in GHCR, and
+      # deploy/github/ghcr-cleanup.sh can keep the newest builds by counting versions
+      - name: Build and push the image
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          push: true
+          provenance: false
+          tags: ${{ steps.name.outputs.image }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  deploy:
+    name: Deploy staging
+    needs: image
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      packages: read
+    # The staging deploy history is on GitHub: repository → Environments → staging.
+    # Deploy prod reads it: only a version that deployed to staging successfully goes to prod.
+    environment:
+      name: staging
+      url: https://test-app.testblacklist.ru
+    env:
+      DEPLOY_DIR: /opt/personal-crm/staging
+      IMAGE: ${{ needs.image.outputs.image }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Set up SSH
+        env:
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DEPLOY_KNOWN_HOSTS: ${{ vars.DEPLOY_KNOWN_HOSTS }}
+          DEPLOY_HOST: ${{ vars.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ vars.DEPLOY_USER }}
+        run: bash deploy/github/setup-ssh.sh
+
+      # The whole deploy/ folder goes to the environment's own folder, so a new script there
+      # arrives by itself and a staging deploy never replaces the scripts a prod deploy is running
+      - name: Copy deploy scripts to the server
+        run: scp -r deploy "server:$DEPLOY_DIR/"
+
+      - name: Deploy on the server
+        env:
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: printf '%s\n' "$GHCR_TOKEN" | ssh server bash "$DEPLOY_DIR/deploy/deploy.sh" staging "$IMAGE" "$GITHUB_ACTOR"
