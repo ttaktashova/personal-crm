@@ -138,7 +138,7 @@ jobs:
 
       - uses: docker/setup-buildx-action@v4
 
-      # The same build as in deploy.yml, without pushing the image anywhere
+      # The same build as in deploy-staging.yml, without pushing the image anywhere
       - name: Build the image
         uses: docker/build-push-action@v7
         with:

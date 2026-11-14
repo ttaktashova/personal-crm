@@ -1,0 +1,103 @@
+name: Deploy prod
+
+# Only by hand: Actions → Deploy prod → Run workflow (README, "Выкатка на прод").
+# Prod gets only a version that deployed to staging successfully, except a rollback.
+on:
+  workflow_dispatch:
+    inputs:
+      sha:
+        description: "Version (commit SHA). Empty: the last successful staging deploy"
+        type: string
+        required: false
+        default: ""
+      rollback:
+        description: "Roll back to the prod version before the current one (the SHA field is ignored)"
+        type: boolean
+        default: false
+
+# One prod deploy at a time; a newer one waits for the running one to finish
+concurrency:
+  group: deploy-prod
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    name: Deploy prod
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      # Pulling the image on the server and deleting old images from GHCR
+      packages: write
+      # Reading the staging deploy history and recording the prod deploy
+      deployments: write
+    env:
+      PROD_DIR: /opt/personal-crm
+      APP_URL: https://app.testblacklist.ru
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      # The deploy scripts copied to prod come from the branch the run starts from: only main,
+      # where everything has passed a PR and CI
+      - name: Check the branch
+        if: github.ref != 'refs/heads/main'
+        run: |
+          echo "::error::Run Deploy prod from the main branch, not from $GITHUB_REF_NAME"
+          exit 1
+
+      - uses: actions/checkout@v7
+
+      - name: Set up SSH
+        env:
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DEPLOY_KNOWN_HOSTS: ${{ vars.DEPLOY_KNOWN_HOSTS }}
+          DEPLOY_HOST: ${{ vars.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ vars.DEPLOY_USER }}
+        run: bash deploy/github/setup-ssh.sh
+
+      - name: Choose the version
+        id: version
+        env:
+          INPUT_SHA: ${{ inputs.sha }}
+          ROLLBACK: ${{ inputs.rollback }}
+        run: bash deploy/github/prod-version.sh
+
+      - name: Record the deploy on GitHub
+        id: deployment
+        env:
+          SHA: ${{ steps.version.outputs.sha }}
+        run: bash deploy/github/deployment.sh start "$SHA"
+
+      - name: Copy deploy scripts to the server
+        run: scp -r deploy "server:$PROD_DIR/"
+
+      - name: Deploy on the server
+        id: deploy
+        env:
+          IMAGE: ${{ steps.version.outputs.image }}
+        run: printf '%s\n' "$GH_TOKEN" | ssh server bash "$PROD_DIR/deploy/deploy.sh" prod "$IMAGE" "$GITHUB_ACTOR"
+
+      - name: Delete old images from GHCR
+        id: cleanup
+        env:
+          SHA: ${{ steps.version.outputs.sha }}
+        run: bash deploy/github/ghcr-cleanup.sh "$SHA"
+
+      - name: Finish the deploy record on GitHub
+        if: ${{ always() && steps.deployment.outputs.id != '' }}
+        env:
+          ID: ${{ steps.deployment.outputs.id }}
+          OUTCOME: ${{ steps.deploy.outcome }}
+        run: bash deploy/github/deployment.sh finish "$ID" "$OUTCOME"
+
+      - name: Summary
+        if: ${{ always() && steps.version.outputs.sha != '' }}
+        env:
+          SHA: ${{ steps.version.outputs.sha }}
+          CHOSEN: ${{ steps.version.outputs.chosen }}
+          BEFORE: ${{ steps.version.outputs.before }}
+          DEPLOY_OUTCOME: ${{ steps.deploy.outcome }}
+          CLEANUP_OUTCOME: ${{ steps.cleanup.outcome }}
+        run: bash deploy/github/summary.sh
