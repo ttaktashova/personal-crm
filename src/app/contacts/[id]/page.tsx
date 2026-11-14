@@ -8,8 +8,9 @@ import { ContactCardActions } from "@/components/contact-card-actions";
 import { Badge } from "@/components/ui/badge";
 import { InteractionSection } from "@/components/interaction-section";
 import { Skeleton } from "@/components/ui/skeleton";
+import { formatBirthday } from "@/lib/birthday";
 import { formatContactFrequency } from "@/lib/contact-frequency";
-import { getContact } from "@/lib/contacts";
+import { birthdayOf, getContact } from "@/lib/contacts";
 import { formatLongDate } from "@/lib/format";
 import { listContactGroups, listGroups } from "@/lib/groups";
 import { parseId } from "@/lib/ids";
@@ -63,6 +64,7 @@ async function ContactCard({ params }: Pick<PageProps<"/contacts/[id]">, "params
   ]);
   if (!contact) notFound();
   const contactGroups = groupsByContact.get(id) ?? [];
+  const birthday = birthdayOf(contact);
 
   const wasEdited =
     contact.updatedAt.getTime() - contact.createdAt.getTime() > EDIT_NOTICE_THRESHOLD_MS;
@@ -86,6 +88,7 @@ async function ContactCard({ params }: Pick<PageProps<"/contacts/[id]">, "params
               email: contact.email,
               notes: contact.notes,
               contactFrequency: contact.contactFrequency,
+              birthday,
               groupIds: contactGroups.map((group) => group.id),
             }}
             groups={allGroups}
@@ -110,6 +113,7 @@ async function ContactCard({ params }: Pick<PageProps<"/contacts/[id]">, "params
         <GroupsField groups={contactGroups} />
         <TextField label="Телефон" value={contact.phone} />
         <TextField label="Почта" value={contact.email} />
+        <TextField label="Дата рождения" value={birthday ? formatBirthday(birthday) : ""} />
         {/* Never empty: no frequency reads "Не задано", a value of its own. */}
         <TextField
           label="Как часто припоминать"
@@ -204,8 +208,9 @@ function ContactCardSkeleton() {
         </div>
       </div>
       <div className={FIELDS_CLASS}>
-        {/* "Откуда знакомы", "Группы", "Телефон", "Почта", "Как часто припоминать". */}
-        {["w-32", "w-36", "w-40", "w-48", "w-28"].map((width) => (
+        {/* "Откуда знакомы", "Группы", "Телефон", "Почта", "Дата рождения",
+            "Как часто припоминать". */}
+        {["w-32", "w-36", "w-40", "w-48", "w-24", "w-28"].map((width) => (
           <SkeletonFieldRow key={width} width={width} />
         ))}
         {/* "Последняя месть": the record line, then the buttons row. */}

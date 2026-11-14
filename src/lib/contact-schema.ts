@@ -1,6 +1,8 @@
 import { z } from "zod";
 
+import type { Birthday } from "@/lib/birthday";
 import { CONTACT_FREQUENCIES } from "@/lib/contact-frequency";
+import { todayIsoDate } from "@/lib/dates";
 import { groupNameSchema } from "@/lib/group-schema";
 import { normalizeForSearch } from "@/lib/search";
 
@@ -12,6 +14,60 @@ const emailFormat = z.email();
 const MAX_GROUP_IDS = 100;
 const MAX_NEW_GROUP_NAMES = 20;
 const MAX_ROW_ID = 2_147_483_647; // Postgres integer upper bound
+
+const NO_SUCH_DATE = "Такой даты нет";
+const MIN_BIRTH_YEAR = 1900;
+// 29 in February: without a year it is a real birthday; with one, the year must be a leap one.
+const DAYS_IN_MONTH = [31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+
+const isLeapYear = (year: number) => (year % 4 === 0 && year % 100 !== 0) || year % 400 === 0;
+const pad = (value: number) => String(value).padStart(2, "0");
+
+// The birthday as the form sends it, three strings: { day: "17", month: "11", year: "" }.
+// Returns the date, null for "no birthday", or the one message to show under the field:
+// the rules go in order and the first one that fails is the only error.
+function parseBirthday(parts: {
+  day: string;
+  month: string;
+  year: string;
+}): Birthday | null | string {
+  const { day, month, year } = parts;
+  if (day === "" && month === "" && year === "") return null;
+  if (day === "" || month === "") return "Укажите день и месяц";
+
+  if (!/^\d{1,2}$/.test(day) || !/^\d{1,2}$/.test(month)) return NO_SUCH_DATE;
+  const dayNumber = Number(day);
+  const monthNumber = Number(month);
+  if (monthNumber < 1 || monthNumber > 12) return NO_SUCH_DATE;
+  if (dayNumber < 1 || dayNumber > DAYS_IN_MONTH[monthNumber - 1]) return NO_SUCH_DATE;
+  if (year === "") return { day: dayNumber, month: monthNumber, year: null };
+
+  if (!/^\d{4}$/.test(year) || Number(year) < MIN_BIRTH_YEAR) {
+    return "Год — четыре цифры, не раньше 1900";
+  }
+  const yearNumber = Number(year);
+  if (monthNumber === 2 && dayNumber === 29 && !isLeapYear(yearNumber)) return NO_SUCH_DATE;
+  // "Today" in Moscow, taken on every check: an open window may live past midnight.
+  if (`${year}-${pad(monthNumber)}-${pad(dayNumber)}` > todayIsoDate()) {
+    return "Дата рождения не может быть позже сегодняшней";
+  }
+  return { day: dayNumber, month: monthNumber, year: yearNumber };
+}
+
+const birthdayPart = z.string(NO_SUCH_DATE).trim();
+
+// A request without the field (an old open tab) means no birthday, like the groups.
+const birthdaySchema = z
+  .object({ day: birthdayPart, month: birthdayPart, year: birthdayPart }, NO_SUCH_DATE)
+  .optional()
+  .transform((parts, context): Birthday | null => {
+    const result = parseBirthday(parts ?? { day: "", month: "", year: "" });
+    if (typeof result === "string") {
+      context.addIssue({ code: "custom", message: result });
+      return z.NEVER;
+    }
+    return result;
+  });
 
 // "Сквош" and "сквош" are one group: the first spelling stays.
 function uniqueGroupNames(names: string[]): string[] {
@@ -44,6 +100,9 @@ export const contactInputSchema = z.object({
       (value) => value === "" || emailFormat.safeParse(value).success,
       "Проверьте адрес почты: похоже, в нём ошибка",
     ),
+  // Day, month and year report to one field of the form, "Дата рождения". Right after the
+  // email, as in the window: the form focuses the first field with an error.
+  birthday: birthdaySchema,
   notes: z.string().trim().max(50_000, "Слишком длинные заметки: не больше 50 000 символов"),
   // The form's "Не задано" sends "", which is stored as NULL.
   contactFrequency: z

@@ -4,7 +4,8 @@ import { and, asc, count, eq, exists, sql } from "drizzle-orm";
 import { cache } from "react";
 
 import { runQuery } from "@/db";
-import { contactGroups, contacts } from "@/db/schema";
+import { contactGroups, contacts, type Contact } from "@/db/schema";
+import type { Birthday } from "@/lib/birthday";
 import type { ContactInput } from "@/lib/contact-schema";
 import { listContactGroups, setContactGroups, type ContactGroup } from "@/lib/groups";
 import { escapeLike } from "@/lib/search";
@@ -145,16 +146,33 @@ export async function findContactPage(
   });
 }
 
+// The birthday is three columns; no birthday is three NULLs.
+function birthdayColumns(birthday: Birthday | null) {
+  return {
+    birthDay: birthday?.day ?? null,
+    birthMonth: birthday?.month ?? null,
+    birthYear: birthday?.year ?? null,
+  };
+}
+
+// The birthday of a saved contact, or null when it has none.
+export function birthdayOf(
+  contact: Pick<Contact, "birthDay" | "birthMonth" | "birthYear">,
+): Birthday | null {
+  const { birthDay: day, birthMonth: month, birthYear: year } = contact;
+  return day === null || month === null ? null : { day, month, year };
+}
+
 // The contact and its groups are saved in one transaction: either all of it or none, so
 // a failed save leaves neither a half-saved contact nor a group that nobody asked for.
 export async function insertContact(ownerId: number, input: ContactInput): Promise<{ id: number }> {
-  const { groupIds, newGroupNames, ...fields } = input;
+  const { groupIds, newGroupNames, birthday, ...fields } = input;
 
   return runQuery("insertContact", (db) =>
     db.transaction(async (tx) => {
       const [created] = await tx
         .insert(contacts)
-        .values({ ...fields, ownerId })
+        .values({ ...fields, ...birthdayColumns(birthday), ownerId })
         .returning({ id: contacts.id });
       await setContactGroups(tx, ownerId, created.id, { groupIds, newGroupNames });
       return created;
@@ -169,13 +187,13 @@ export async function updateContactById(
   id: number,
   input: ContactInput,
 ): Promise<{ id: number } | null> {
-  const { groupIds, newGroupNames, ...fields } = input;
+  const { groupIds, newGroupNames, birthday, ...fields } = input;
 
   return runQuery("updateContactById", (db) =>
     db.transaction(async (tx) => {
       const [updated] = await tx
         .update(contacts)
-        .set({ ...fields, updatedAt: sql`now()` })
+        .set({ ...fields, ...birthdayColumns(birthday), updatedAt: sql`now()` })
         .where(and(eq(contacts.id, id), ownedBy(ownerId)))
         .returning({ id: contacts.id });
       if (!updated) return null;

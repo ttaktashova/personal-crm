@@ -1,12 +1,14 @@
 import { sql } from "drizzle-orm";
 import {
   boolean,
+  check,
   date,
   index,
   integer,
   pgEnum,
   pgTable,
   primaryKey,
+  smallint,
   text,
   timestamp,
   uniqueIndex,
@@ -124,11 +126,31 @@ export const contacts = pgTable(
     email: text("email").notNull().default(""),
     notes: text("notes").notNull().default(""),
     contactFrequency: contactFrequency("contact_frequency"),
+    // The birthday as the owner enters it: day and month together, the year may be unknown.
+    // All three NULL means no birthday. No placeholder year, so "no year" stays visible.
+    birthDay: smallint("birth_day"),
+    birthMonth: smallint("birth_month"),
+    birthYear: smallint("birth_year"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
-  // Every query of the app reads one owner's contacts.
-  (table) => [index("contacts_owner_id_idx").on(table.ownerId)],
+  (table) => [
+    // Every query of the app reads one owner's contacts.
+    index("contacts_owner_id_idx").on(table.ownerId),
+    // A guard against writes past the app: day and month together, and the day exists in the
+    // month (29 February is allowed: without a year it is a real birthday). The finer rules —
+    // 29 February in a common year, the year from 1900, not after today in Moscow — are in
+    // src/lib/contact-schema.ts: the database does not know "today" in the app time zone.
+    check(
+      "contacts_birthday_check",
+      sql`(${table.birthDay} is null and ${table.birthMonth} is null and ${table.birthYear} is null)
+        or (${table.birthDay} is not null and ${table.birthMonth} is not null
+          and ${table.birthMonth} between 1 and 12
+          and ${table.birthDay} between 1 and case ${table.birthMonth}
+            when 2 then 29 when 4 then 30 when 6 then 30 when 9 then 30 when 11 then 30
+            else 31 end)`,
+    ),
+  ],
 );
 
 export type Contact = typeof contacts.$inferSelect;

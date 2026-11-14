@@ -9,6 +9,7 @@ import { GroupFilter } from "@/components/group-filter";
 import { NewContactDialog } from "@/components/new-contact-dialog";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { UpcomingBirthdays } from "@/components/upcoming-birthdays";
 import { findContactPage, listContactsPage } from "@/lib/contacts";
 import { listGroups } from "@/lib/groups";
 import { parseId } from "@/lib/ids";
@@ -45,10 +46,15 @@ export default function ContactsPage({ searchParams }: PageProps<"/">) {
       </div>
 
       {/* The search row adds 8px on top: 12px to the group row and 20px to the search
-          on a phone, 24px on a computer. */}
+          on a phone, 24px on a computer. "Скоро день рождения" and "Пора мстить" come in
+          together in place of the skeleton, so the page moves once. No birthdays soon: no
+          block and no gap, "Пора мстить" right under the group row. */}
       <div className="mb-3 sm:mb-4">
         <Suspense fallback={<DueContactsSkeleton />}>
-          <DueContacts searchParams={searchParams} />
+          <div className="flex flex-col gap-3">
+            <UpcomingBirthdays searchParams={searchParams} />
+            <DueContacts searchParams={searchParams} />
+          </div>
         </Suspense>
       </div>
 

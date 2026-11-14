@@ -91,27 +91,38 @@ export async function addContacts(ownerId: number, names: string[]): Promise<voi
 
 export type ContactFrequency = "week" | "month" | "quarter" | "year";
 
-// One contact with a frequency or without one. `createdAt` puts "Добавлен" in the past,
-// so a change made by the test shows "изменён". Returns the id.
+// Month 1–12; year null when it is not known.
+export type Birthday = { day: number; month: number; year: number | null };
+
+// One contact with a frequency or without one, with a birthday or without one. `createdAt`
+// puts "Добавлен" in the past, so a change made by the test shows "изменён". Returns the id.
 export async function addContact(
   ownerId: number,
   {
     name,
     contactFrequency = null,
     createdAt = null,
+    birthday = null,
   }: {
     name: string;
     contactFrequency?: ContactFrequency | null;
     createdAt?: Date | null;
+    birthday?: Birthday | null;
   },
 ): Promise<number> {
   return withDatabase(async (sql) => {
     const [contact] = await sql<{ id: number }[]>`
-      insert into contacts (owner_id, name, contact_frequency, created_at, updated_at)
+      insert into contacts (
+        owner_id, name, contact_frequency, birth_day, birth_month, birth_year,
+        created_at, updated_at
+      )
       values (
         ${ownerId},
         ${name},
         ${contactFrequency}::contact_frequency,
+        ${birthday?.day ?? null}::smallint,
+        ${birthday?.month ?? null}::smallint,
+        ${birthday?.year ?? null}::smallint,
         coalesce(${createdAt}::timestamptz, now()),
         coalesce(${createdAt}::timestamptz, now())
       )

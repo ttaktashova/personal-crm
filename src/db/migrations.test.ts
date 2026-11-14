@@ -22,6 +22,8 @@ const MIGRATIONS_BEFORE_GROUPS = 4;
 const MIGRATIONS_BEFORE_SIGN_IN = 6;
 // The migrations that existed before contacts and groups had an owner: 0000 to 0006.
 const MIGRATIONS_BEFORE_OWNER = 7;
+// The migrations that existed before the birthday: 0000 to 0009.
+const MIGRATIONS_BEFORE_BIRTHDAY = 10;
 
 const NO_OWNER_EMAIL = "OWNER_EMAIL is not set or is not an email";
 
@@ -69,6 +71,11 @@ async function failure(promise: Promise<unknown>): Promise<string> {
     () => "no error",
     (error: unknown) => messagesOf(error),
   );
+}
+
+// A contact from before 0010 as it is after: the birthday columns came empty.
+function withNoBirthday<T extends object>(contact: T) {
+  return { ...contact, birth_day: null, birth_month: null, birth_year: null };
 }
 
 // A row without the owner column, to compare with the rows from before it existed.
@@ -209,7 +216,7 @@ describe("migrations", () => {
     await migrateTo(url, allMigrations);
 
     const after = await query<{ owner_id: number }>(url, "select * from contacts order by id");
-    expect(after.map(withoutOwner)).toEqual(before);
+    expect(after.map(withoutOwner)).toEqual(before.map(withNoBirthday));
     const [links] = await query<{ count: number }>(
       url,
       "select count(*)::int as count from contact_groups",
@@ -265,8 +272,31 @@ describe("migrations", () => {
       "select * from contacts order by id",
     );
     expect(after.map(withoutOwner)).toEqual(
-      before.map((contact) => ({ ...contact, contact_frequency: null })),
+      before.map((contact) => ({ ...withNoBirthday(contact), contact_frequency: null })),
     );
+  });
+
+  // "Существующие контакты" of the birthdays spec.
+  it("give the contacts that were there before no birthday", { timeout: 30_000 }, async () => {
+    const { url } = await newDatabase();
+    await migrateTo(url, await copyFirstMigrations(MIGRATIONS_BEFORE_BIRTHDAY));
+    const [owner] = await usersOf(url);
+
+    await query(
+      url,
+      `insert into contacts (owner_id, name, how_we_met, phone, email, notes, contact_frequency)
+       select ${owner.id}, 'Контакт ' || n, 'Познакомились ' || n, '+7 900 ' || n,
+         'c' || n || '@example.com', 'Заметка ' || n,
+         case when n % 4 = 0 then 'month'::contact_frequency end
+       from generate_series(1, 1000) as n`,
+    );
+    const before = await query(url, "select * from contacts order by id");
+    expect(before).toHaveLength(1000);
+
+    await migrateTo(url, allMigrations);
+
+    const after = await query(url, "select * from contacts order by id");
+    expect(after).toEqual(before.map(withNoBirthday));
   });
 });
 
@@ -308,7 +338,7 @@ describe("migrations to owned data", () => {
 
       const after = await snapshot(url);
       expect(after.counts).toEqual(before.counts);
-      expect(after.contacts.map(withoutOwner)).toEqual(before.contacts);
+      expect(after.contacts.map(withoutOwner)).toEqual(before.contacts.map(withNoBirthday));
       expect(after.groups.map(withoutOwner)).toEqual(before.groups);
       // Revenge records and who is in which group belong to the contact: untouched.
       expect(after.interactions).toEqual(before.interactions);

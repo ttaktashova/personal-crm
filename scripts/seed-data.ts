@@ -778,6 +778,29 @@ function pickGroups(random: Random): number[] {
   return Array.from({ length: count }, () => random());
 }
 
+// Any day of a leap year, so 29 February comes up too.
+const LEAP_YEAR_START = Date.UTC(2024, 0, 1);
+const LEAP_YEAR_DAYS = 366;
+const FIRST_BIRTH_YEAR = 1960;
+const LAST_BIRTH_YEAR = 2005;
+
+type SeedBirthday = Pick<NewContact, "birthDay" | "birthMonth" | "birthYear">;
+
+// About 30 % of the people have a birthday, about a quarter of them without the year: out of
+// 1000, «Скоро день рождения» gets 6–7 people on an average day.
+function pickBirthday(random: Random): SeedBirthday {
+  if (!chance(random, 0.3)) return { birthDay: null, birthMonth: null, birthYear: null };
+  const date = new Date(LEAP_YEAR_START + randomInt(random, 0, LEAP_YEAR_DAYS - 1) * DAY_MS);
+  const day = date.getUTCDate();
+  const month = date.getUTCMonth() + 1;
+  if (chance(random, 0.25)) return { birthDay: day, birthMonth: month, birthYear: null };
+
+  const year = randomInt(random, FIRST_BIRTH_YEAR, LAST_BIRTH_YEAR);
+  // 29 February only in a leap year: the nearest one before. 1960–2005 has no 1900 or 2100.
+  const birthYear = month === 2 && day === 29 ? year - (year % 4) : year;
+  return { birthDay: day, birthMonth: month, birthYear };
+}
+
 export function generateContacts(count: number, seed = 20261009): SeedContact[] {
   const random = createRandom(seed);
   // A separate sequence for the reminder frequency, so names, notes and history
@@ -785,6 +808,8 @@ export function generateContacts(count: number, seed = 20261009): SeedContact[] 
   const frequencyRandom = createRandom(seed + 1);
   // And one more for the groups, for the same reason.
   const groupRandom = createRandom(seed + 2);
+  // And for the birthdays.
+  const birthdayRandom = createRandom(seed + 3);
   const usedNames = new Set<string>();
   const result: SeedContact[] = [];
 
@@ -845,6 +870,7 @@ export function generateContacts(count: number, seed = 20261009): SeedContact[] 
         contactFrequency: chance(frequencyRandom, 0.25)
           ? pick(frequencyRandom, CONTACT_FREQUENCIES)
           : null,
+        ...pickBirthday(birthdayRandom),
         createdAt,
         updatedAt,
       },
